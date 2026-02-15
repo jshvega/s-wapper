@@ -4,7 +4,11 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { WeeklyStrip } from '@/components/calendar/weekly-strip'
+import { calculateEffectiveSchedule } from '@/lib/utils/schedule'
+import { getWeekDates, formatDateKey } from '@/lib/utils/dates'
+import { Plus, Clock, CheckCircle } from 'lucide-react'
+import type { Schedule, Adjustment } from '@/lib/types'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -14,80 +18,67 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  // Get this week's schedule
   const today = new Date()
-  const dayNames: Record<number, string> = {
-    0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT',
-  }
+  const weekDates = getWeekDates(today)
+  const weekStart = formatDateKey(weekDates[0])
+  const weekEnd = formatDateKey(weekDates[6])
 
-  const { data: schedules } = await supabase
-    .from('schedules')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('effective_from', { ascending: false })
+  const [
+    profileRes,
+    schedulesRes,
+    pendingRes,
+    weekAdjRes,
+    openCountRes,
+    ledgerOwedRes,
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase
+      .from('schedules')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('effective_from', { ascending: false }),
+    supabase
+      .from('adjustments')
+      .select('*, creator:profiles!creator_id(id,name), accepter:profiles!accepter_id(id,name)')
+      .eq('status', 'PENDING_CONFIRMATION')
+      .or(`creator_id.eq.${user.id},accepter_id.eq.${user.id}`)
+      .order('expires_at', { ascending: true }),
+    supabase
+      .from('adjustments')
+      .select('*, creator:profiles!creator_id(id,name), accepter:profiles!accepter_id(id,name)')
+      .gte('date', weekStart)
+      .lte('date', weekEnd)
+      .or(`creator_id.eq.${user.id},accepter_id.eq.${user.id}`)
+      .in('status', ['DRAFT', 'OPEN', 'PENDING_CONFIRMATION', 'CONFIRMED']),
+    supabase
+      .from('adjustments')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'OPEN')
+      .neq('creator_id', user.id),
+    supabase
+      .from('ledger_entries')
+      .select('id')
+      .eq('debtor_id', user.id)
+      .eq('is_settled', false),
+  ])
 
-  // Get pending confirmations for this user
-  const { data: pendingAdjustments } = await supabase
-    .from('adjustments')
-    .select('*, creator:profiles!creator_id(name), accepter:profiles!accepter_id(name)')
-    .eq('status', 'PENDING_CONFIRMATION')
-    .or(`creator_id.eq.${user.id},accepter_id.eq.${user.id}`)
-    .order('expires_at', { ascending: true })
+  const profile = profileRes.data
+  const schedules = (schedulesRes.data ?? []) as Schedule[]
+  const pendingAdjustments = pendingRes.data ?? []
+  const weekAdjustments = (weekAdjRes.data ?? []) as Adjustment[]
+  const openCount = openCountRes.count ?? 0
+  const ledgerOwed = ledgerOwedRes.data ?? []
 
-  // Get open marketplace count
-  const { count: openCount } = await supabase
-    .from('adjustments')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'OPEN')
-    .neq('creator_id', user.id)
+  // Compute effective shifts for the weekly strip
+  const effectiveShifts = calculateEffectiveSchedule(
+    user.id,
+    schedules,
+    weekAdjustments,
+    { start: weekDates[0], end: weekDates[6] }
+  )
 
-  // Get ledger summary
-  const { data: ledgerOwed } = await supabase
-    .from('ledger_entries')
-    .select('id')
-    .eq('debtor_id', user.id)
-    .eq('is_settled', false)
-
-  const { data: ledgerOwedToMe } = await supabase
-    .from('ledger_entries')
-    .select('id')
-    .eq('creditor_id', user.id)
-    .eq('is_settled', false)
-
-  // Build weekly strip
-  const weekDays = []
-  const startOfWeek = new Date(today)
-  const dayOfWeek = today.getDay()
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  startOfWeek.setDate(today.getDate() + mondayOffset)
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(startOfWeek)
-    date.setDate(startOfWeek.getDate() + i)
-    const dayKey = dayNames[date.getDay()]
-    const schedule = schedules?.find((s) => s.day_of_week === dayKey)
-    const isToday = date.toDateString() === today.toDateString()
-    weekDays.push({ date, dayKey, schedule, isToday })
-  }
-
-  const DAY_LABELS: Record<string, string> = {
-    MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun',
-  }
-
-  function formatTime(time: string | null) {
-    if (!time) return null
-    const [h, m] = time.split(':')
-    const hour = parseInt(h)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
-    return `${hour12}:${m}${ampm}`
-  }
+  const greeting =
+    today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-4xl">
@@ -95,8 +86,7 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'},{' '}
-            {profile?.name?.split(' ')[0]}
+            Good {greeting}, {profile?.name?.split(' ')[0]}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -113,33 +103,19 @@ export default async function DashboardPage() {
       {/* Weekly Strip */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">This Week</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">This Week</CardTitle>
+            <Link href="/calendar" className="text-xs text-blue-600 hover:underline">
+              Full calendar →
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-7 gap-1">
-            {weekDays.map(({ date, dayKey, schedule, isToday }) => (
-              <div
-                key={dayKey}
-                className={`flex flex-col items-center p-2 rounded-lg text-center ${
-                  isToday ? 'bg-blue-50 ring-2 ring-blue-400' : ''
-                } ${schedule?.is_day_off ? 'bg-blue-50' : ''}`}
-              >
-                <span className="text-xs font-medium text-gray-500">{DAY_LABELS[dayKey]}</span>
-                <span className={`text-lg font-bold mt-0.5 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
-                  {date.getDate()}
-                </span>
-                {schedule?.is_day_off ? (
-                  <span className="text-xs text-blue-600 mt-1">OFF</span>
-                ) : schedule ? (
-                  <span className="text-xs text-gray-500 mt-1 leading-tight">
-                    {formatTime(schedule.shift_start)}
-                  </span>
-                ) : (
-                  <span className="text-xs text-gray-300 mt-1">—</span>
-                )}
-              </div>
-            ))}
-          </div>
+          <WeeklyStrip
+            effectiveShifts={effectiveShifts}
+            weekDates={weekDates}
+            today={today}
+          />
         </CardContent>
       </Card>
 
@@ -147,7 +123,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{openCount ?? 0}</p>
+            <p className="text-2xl font-bold text-blue-600">{openCount}</p>
             <p className="text-xs text-gray-500 mt-1">Open Listings</p>
             <Link href="/marketplace" className="text-xs text-blue-600 hover:underline mt-1 block">
               View
@@ -156,13 +132,13 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-2xl font-bold text-amber-600">{pendingAdjustments?.length ?? 0}</p>
+            <p className="text-2xl font-bold text-amber-600">{pendingAdjustments.length}</p>
             <p className="text-xs text-gray-500 mt-1">Pending</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-2xl font-bold text-purple-600">{ledgerOwed?.length ?? 0}</p>
+            <p className="text-2xl font-bold text-purple-600">{ledgerOwed.length}</p>
             <p className="text-xs text-gray-500 mt-1">Covers Owed</p>
             <Link href="/ledger" className="text-xs text-blue-600 hover:underline mt-1 block">
               View
@@ -172,7 +148,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Pending Confirmations */}
-      {pendingAdjustments && pendingAdjustments.length > 0 && (
+      {pendingAdjustments.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -189,7 +165,10 @@ export default async function DashboardPage() {
               const isCreator = adj.creator_id === user.id
 
               return (
-                <div key={adj.id} className="flex items-center justify-between p-3 rounded-lg border bg-amber-50 border-amber-200">
+                <div
+                  key={adj.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-amber-50 border-amber-200"
+                >
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
                       <Badge variant="warning">{adj.type}</Badge>
@@ -198,8 +177,16 @@ export default async function DashboardPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {new Date(adj.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      {hoursLeft !== null && ` · ${hoursLeft}h remaining`}
+                      {new Date(adj.date + 'T00:00:00').toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                      {hoursLeft !== null && (
+                        <span className={hoursLeft < 4 ? ' text-red-500 font-medium' : ''}>
+                          {' '}· {hoursLeft}h remaining
+                        </span>
+                      )}
                     </p>
                   </div>
                   <Link href={`/listings/${adj.id}`}>

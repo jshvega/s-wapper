@@ -4,6 +4,40 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { SetupScheduleInput } from '@/lib/types'
 
+export async function updateSchedule(input: SetupScheduleInput) {
+  return setupSchedule(input)
+}
+
+export async function getScheduleForUser(userId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('schedules')
+    .select('*')
+    .eq('user_id', userId)
+    .order('effective_from', { ascending: false })
+  return data ?? []
+}
+
+export async function getAdjustmentsForRange(startDate: string, endDate: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('adjustments')
+    .select('*, creator:profiles!creator_id(id, name), accepter:profiles!accepter_id(id, name)')
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .or(`creator_id.eq.${user.id},accepter_id.eq.${user.id}`)
+    .in('status', ['DRAFT', 'OPEN', 'PENDING_CONFIRMATION', 'CONFIRMED'])
+    .order('date', { ascending: true })
+
+  return data ?? []
+}
+
 export async function setupSchedule(input: SetupScheduleInput) {
   const supabase = await createClient()
   const {
