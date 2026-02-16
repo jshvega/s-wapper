@@ -3,23 +3,39 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { ListingCard } from '@/components/marketplace/listing-card'
 import { AcceptDialog } from '@/components/marketplace/accept-dialog'
 import { createClient } from '@/lib/supabase/client'
 import { Search, Store } from 'lucide-react'
-import type { Adjustment, AdjustmentType, ListingType } from '@/lib/types'
+import type { Adjustment, AdjustmentType, ListingType, RuleViolation } from '@/lib/types'
+
+type EligibilityEntry = {
+  listing: Adjustment
+  canAccept: boolean
+  violations: RuleViolation[]
+}
 
 interface MarketplaceClientProps {
   initialListings: Adjustment[]
+  eligibilityMap: EligibilityEntry[]
   currentUserId: string
 }
 
 type TypeFilter = AdjustmentType | 'ALL'
 type ListingTypeFilter = ListingType | 'ALL'
 
-export function MarketplaceClient({ initialListings, currentUserId }: MarketplaceClientProps) {
+export function MarketplaceClient({
+  initialListings,
+  eligibilityMap,
+  currentUserId,
+}: MarketplaceClientProps) {
   const [listings, setListings] = useState<Adjustment[]>(initialListings)
+  // eligibility keyed by listing id — starts from SSR data, not refreshed on realtime
+  // (re-running validation client-side on realtime updates would require server calls;
+  //  instead we refresh the whole page which re-runs server-side eligibility check)
+  const [eligibility] = useState<Map<string, EligibilityEntry>>(
+    () => new Map(eligibilityMap.map((e) => [e.listing.id, e]))
+  )
   const [selectedAdj, setSelectedAdj] = useState<Adjustment | null>(null)
 
   // Filters
@@ -27,8 +43,9 @@ export function MarketplaceClient({ initialListings, currentUserId }: Marketplac
   const [listingTypeFilter, setListingTypeFilter] = useState<ListingTypeFilter>('ALL')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [showOnlyEligible, setShowOnlyEligible] = useState(false)
 
-  // Real-time subscription
+  // Real-time subscription — re-fetch listings when marketplace changes
   const supabase = createClient()
 
   const fetchListings = useCallback(async () => {
@@ -64,16 +81,28 @@ export function MarketplaceClient({ initialListings, currentUserId }: Marketplac
     if (listingTypeFilter !== 'ALL' && adj.listing_type !== listingTypeFilter) return false
     if (dateFrom && adj.date < dateFrom) return false
     if (dateTo && adj.date > dateTo) return false
+    if (showOnlyEligible) {
+      const e = eligibility.get(adj.id)
+      if (e && !e.canAccept) return false
+    }
     return true
   })
 
+  const ineligibleCount = listings.filter((adj) => {
+    const e = eligibility.get(adj.id)
+    return e && !e.canAccept
+  }).length
+
   const todayStr = new Date().toISOString().split('T')[0]
+  const selectedEligibility = selectedAdj ? eligibility.get(selectedAdj.id) : undefined
+
+  const hasFilters = typeFilter !== 'ALL' || listingTypeFilter !== 'ALL' || dateFrom || dateTo || showOnlyEligible
 
   return (
     <>
       {/* Filters */}
       <div className="space-y-3 mb-5">
-        {/* Type filter */}
+        {/* Type filter pills */}
         <div className="flex gap-2 flex-wrap">
           {(['ALL', 'SWAP', 'COVER'] as TypeFilter[]).map((t) => (
             <button
@@ -106,16 +135,15 @@ export function MarketplaceClient({ initialListings, currentUserId }: Marketplac
           ))}
         </div>
 
-        {/* Date range */}
-        <div className="flex items-center gap-2">
+        {/* Date range + eligible only */}
+        <div className="flex items-center gap-2 flex-wrap">
           <Search className="h-4 w-4 text-gray-400 shrink-0" />
           <Input
             type="date"
             min={todayStr}
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="h-8 text-sm max-w-[160px]"
-            placeholder="From"
+            className="h-8 text-sm max-w-[150px]"
           />
           <span className="text-gray-400 text-sm">–</span>
           <Input
@@ -123,8 +151,7 @@ export function MarketplaceClient({ initialListings, currentUserId }: Marketplac
             min={dateFrom || todayStr}
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="h-8 text-sm max-w-[160px]"
-            placeholder="To"
+            className="h-8 text-sm max-w-[150px]"
           />
           {(dateFrom || dateTo) && (
             <Button
@@ -137,19 +164,33 @@ export function MarketplaceClient({ initialListings, currentUserId }: Marketplac
             </Button>
           )}
         </div>
+
+        {/* Eligible-only toggle */}
+        {ineligibleCount > 0 && (
+          <button
+            onClick={() => setShowOnlyEligible(!showOnlyEligible)}
+            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+              showOnlyEligible
+                ? 'bg-green-600 text-white border-green-600'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+            }`}
+          >
+            {showOnlyEligible
+              ? `✓ Showing only ${listings.length - ineligibleCount} eligible`
+              : `Show only eligible (${ineligibleCount} ineligible hidden)`}
+          </button>
+        )}
       </div>
 
-      {/* Count */}
+      {/* Count + reset */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-gray-500">
           {filtered.length === 0
             ? 'No listings found'
             : `${filtered.length} listing${filtered.length !== 1 ? 's' : ''}`}
-          {(typeFilter !== 'ALL' || listingTypeFilter !== 'ALL' || dateFrom || dateTo) && (
-            <span className="ml-1 text-gray-400">(filtered)</span>
-          )}
+          {hasFilters && <span className="ml-1 text-gray-400">(filtered)</span>}
         </p>
-        {(typeFilter !== 'ALL' || listingTypeFilter !== 'ALL' || dateFrom || dateTo) && (
+        {hasFilters && (
           <Button
             variant="ghost"
             size="sm"
@@ -159,9 +200,10 @@ export function MarketplaceClient({ initialListings, currentUserId }: Marketplac
               setListingTypeFilter('ALL')
               setDateFrom('')
               setDateTo('')
+              setShowOnlyEligible(false)
             }}
           >
-            Reset filters
+            Reset
           </Button>
         )}
       </div>
@@ -179,14 +221,27 @@ export function MarketplaceClient({ initialListings, currentUserId }: Marketplac
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((adj) => (
-            <ListingCard key={adj.id} adj={adj} onAccept={setSelectedAdj} />
-          ))}
+          {filtered.map((adj) => {
+            const e = eligibility.get(adj.id)
+            return (
+              <ListingCard
+                key={adj.id}
+                adj={adj}
+                canAccept={e?.canAccept ?? true}
+                violations={e?.violations ?? []}
+                onAccept={setSelectedAdj}
+              />
+            )
+          })}
         </div>
       )}
 
-      {/* Accept dialog */}
-      <AcceptDialog adj={selectedAdj} onClose={() => setSelectedAdj(null)} />
+      {/* Accept dialog — passes pre-computed violations so it can show them immediately */}
+      <AcceptDialog
+        adj={selectedAdj}
+        violations={selectedEligibility?.violations ?? []}
+        onClose={() => setSelectedAdj(null)}
+      />
     </>
   )
 }

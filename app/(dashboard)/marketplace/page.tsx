@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { MarketplaceClient } from '@/components/marketplace/marketplace-client'
+import { getEligibleListings } from '@/lib/validators/rules'
 import { Plus } from 'lucide-react'
 import type { Adjustment } from '@/lib/types'
 
@@ -24,6 +25,9 @@ export default async function MarketplacePage() {
 
   const listings = (data ?? []) as Adjustment[]
 
+  // Pre-compute eligibility for all listings (single DB round-trip for user state)
+  const eligibilityMap = await getEligibleListings(user.id, listings)
+
   return (
     <div className="p-4 lg:p-8 max-w-2xl">
       <div className="flex items-center justify-between mb-6">
@@ -39,7 +43,11 @@ export default async function MarketplacePage() {
         </Link>
       </div>
 
-      <MarketplaceClient initialListings={listings} currentUserId={user.id} />
+      <MarketplaceClient
+        initialListings={listings}
+        eligibilityMap={eligibilityMap}
+        currentUserId={user.id}
+      />
     </div>
   )
 }

@@ -4,7 +4,9 @@
       "Bash(cat:*)",
       "Bash(\"c:/Users/mango/Downloads/swapper/app/\\(dashboard\\)/listings/[id]/page.tsx\":*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(python3:*)",
+      "Bash(node:*)"
     ]
   }
 }

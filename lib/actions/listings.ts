@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { validateAcceptance } from '@/lib/validators/rules'
 import type { CreateListingInput } from '@/lib/types'
 
 export async function createListing(input: CreateListingInput) {
@@ -142,6 +143,15 @@ export async function acceptListing(id: string) {
   if (!listing) return { error: 'Listing not found.' }
   if (listing.status !== 'OPEN') return { error: 'This listing is no longer available.' }
   if (listing.creator_id === user.id) return { error: 'You cannot accept your own listing.' }
+
+  // Run rule validation before accepting
+  const validation = await validateAcceptance(id, user.id)
+  if (!validation.valid) {
+    return {
+      error: validation.violations[0]?.message ?? 'This listing cannot be accepted due to a rule violation.',
+      violations: validation.violations,
+    }
+  }
 
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
