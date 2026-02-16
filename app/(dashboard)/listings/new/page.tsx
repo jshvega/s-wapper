@@ -1,8 +1,21 @@
-export default function NewListingPage() {
-  return (
-    <div className="p-4 lg:p-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Listing</h1>
-      <p className="text-gray-500">Create a new swap or cover listing. Coming in Phase 3.</p>
-    </div>
-  )
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { ListingForm } from '@/components/listings/listing-form'
+import type { Schedule } from '@/lib/types'
+
+export default async function NewListingPage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
+  const { data: schedules } = await supabase
+    .from('schedules')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('effective_from', { ascending: false })
+
+  return <ListingForm schedule={(schedules ?? []) as Schedule[]} />
 }

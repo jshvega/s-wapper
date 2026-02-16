@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(\"c:/Users/mango/Downloads/swapper/app/\\(dashboard\\)/listings/[id]/page.tsx\":*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}
