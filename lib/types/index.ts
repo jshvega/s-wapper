@@ -40,6 +40,19 @@ export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED'
 
 // ---- Database Row Types ----
 
+export interface NotificationPreferences {
+  email: Record<NotificationEventKey, boolean>
+  sms: Record<NotificationEventKey, boolean>
+}
+
+export type NotificationEventKey =
+  | 'accepted'
+  | 'timer_warning'
+  | 'confirmed'
+  | 'expired'
+  | 'shift_reminder'
+  | 'obligation_created'
+
 export interface Profile {
   id: string
   email: string
@@ -47,6 +60,7 @@ export interface Profile {
   name: string
   role: UserRole
   is_active: boolean
+  notification_preferences: NotificationPreferences
   created_at: string
   updated_at: string
 }

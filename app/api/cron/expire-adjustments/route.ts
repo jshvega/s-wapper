@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { checkExpirationWarnings } from '@/lib/utils/expiration-warnings'
+import { notifyAdjustmentExpired } from '@/lib/notifications/notify'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   // Find all expired PENDING_CONFIRMATION adjustments
   const { data: expired, error: fetchError } = await supabase
     .from('adjustments')
-    .select('id, creator_id, accepter_id, type, date')
+    .select('id, creator_id, accepter_id, type, date, original_shift_start, original_shift_end')
     .eq('status', 'PENDING_CONFIRMATION')
     .lt('expires_at', new Date().toISOString())
 
@@ -69,11 +70,25 @@ export async function GET(request: NextRequest) {
       metadata: { reason: 'cron_expiration', expired_at: new Date().toISOString() },
     })
 
-    // Notify both parties (console.log for now)
-    console.log(
-      `[NOTIFICATION] Adjustment ${adj.id} (${adj.type} on ${adj.date}) has expired. ` +
-      `Notifying creator ${adj.creator_id} and accepter ${adj.accepter_id}.`
-    )
+    // Notify both parties
+    if (adj.creator_id && adj.accepter_id) {
+      const [creatorRes, accepterRes] = await Promise.all([
+        supabase.from('profiles').select('id, name, email, phone').eq('id', adj.creator_id).single(),
+        supabase.from('profiles').select('id, name, email, phone').eq('id', adj.accepter_id).single(),
+      ])
+
+      if (creatorRes.data && accepterRes.data) {
+        notifyAdjustmentExpired({
+          creator: creatorRes.data,
+          accepter: accepterRes.data,
+          adjustmentType: adj.type,
+          date: adj.date,
+          shiftStart: adj.original_shift_start,
+          shiftEnd: adj.original_shift_end,
+          adjustmentId: adj.id,
+        }).catch((err) => console.error(`[NOTIFY] expire error for ${adj.id}:`, err))
+      }
+    }
 
     results.push({ id: adj.id, success: true })
   }

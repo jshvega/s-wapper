@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { validateAcceptance } from '@/lib/validators/rules'
+import { notifyListingAccepted, notifyAdjustmentConfirmed, notifyObligationCreated } from '@/lib/notifications/notify'
 import type { CreateListingInput } from '@/lib/types'
 
 export async function createListing(input: CreateListingInput) {
@@ -178,29 +179,24 @@ export async function acceptListing(id: string) {
     metadata: { expires_at: expiresAt },
   })
 
-  // Fetch names for notification context
-  const { data: creatorProfile } = await supabase
-    .from('profiles')
-    .select('name, email')
-    .eq('id', listing.creator_id)
-    .single()
-  const { data: accepterProfile } = await supabase
-    .from('profiles')
-    .select('name, email')
-    .eq('id', user.id)
-    .single()
+  // Fetch profiles for notification
+  const [creatorRes, accepterRes] = await Promise.all([
+    supabase.from('profiles').select('id, name, email, phone').eq('id', listing.creator_id).single(),
+    supabase.from('profiles').select('id, name, email, phone').eq('id', user.id).single(),
+  ])
 
-  // Notify both parties (console.log for now — real notifications in Phase 7)
-  console.log(
-    `[NOTIFICATION] To creator (${creatorProfile?.email}): ` +
-    `Your ${listing.type} listing for ${listing.date} was accepted by ${accepterProfile?.name}. ` +
-    `You have 24 hours to enter the Aspect Track ID to confirm.`
-  )
-  console.log(
-    `[NOTIFICATION] To accepter (${accepterProfile?.email}): ` +
-    `You accepted ${creatorProfile?.name}'s ${listing.type} listing for ${listing.date}. ` +
-    `Either party has 24 hours to enter the Aspect Track ID to confirm.`
-  )
+  // Notify creator that their listing was accepted
+  if (creatorRes.data && accepterRes.data) {
+    notifyListingAccepted({
+      creator: creatorRes.data,
+      accepter: accepterRes.data,
+      adjustmentType: listing.type,
+      date: listing.date,
+      shiftStart: listing.original_shift_start,
+      shiftEnd: listing.original_shift_end,
+      adjustmentId: id,
+    }).catch((err) => console.error('[NOTIFY] acceptListing error:', err))
+  }
 
   revalidatePath('/marketplace')
   revalidatePath('/dashboard')
@@ -346,19 +342,43 @@ export async function confirmAdjustment(id: string, trackId: string) {
     metadata: { track_id: trackId.trim() },
   })
 
-  // Notify both parties of confirmation (console.log for now)
-  const otherPartyId = adj.creator_id === user.id ? adj.accepter_id : adj.creator_id
-  const [confirmerRes, otherRes] = await Promise.all([
-    supabase.from('profiles').select('name, email').eq('id', user.id).single(),
-    otherPartyId
-      ? supabase.from('profiles').select('name, email').eq('id', otherPartyId).single()
+  // Notify both parties of confirmation
+  const [creatorRes, accepterRes] = await Promise.all([
+    supabase.from('profiles').select('id, name, email, phone').eq('id', adj.creator_id).single(),
+    adj.accepter_id
+      ? supabase.from('profiles').select('id, name, email, phone').eq('id', adj.accepter_id).single()
       : Promise.resolve({ data: null }),
   ])
 
-  console.log(
-    `[NOTIFICATION] To ${otherRes.data?.email ?? 'other party'}: ` +
-    `${confirmerRes.data?.name} confirmed the ${adj.type} for ${adj.date} with Track ID: ${trackId.trim()}`
-  )
+  if (creatorRes.data && accepterRes.data) {
+    notifyAdjustmentConfirmed({
+      creator: creatorRes.data,
+      accepter: accepterRes.data,
+      adjustmentType: adj.type,
+      date: adj.date,
+      shiftStart: adj.original_shift_start,
+      shiftEnd: adj.original_shift_end,
+      trackId: trackId.trim(),
+      adjustmentId: id,
+    }).catch((err) => console.error('[NOTIFY] confirmAdjustment error:', err))
+
+    // Notify about obligation if cover was created
+    if (adj.type === 'COVER') {
+      const isCreatorGivingCover = adj.listing_type === 'OFFER'
+      const creditor = isCreatorGivingCover ? creatorRes.data : accepterRes.data
+      const debtor = isCreatorGivingCover ? accepterRes.data : creatorRes.data
+
+      notifyObligationCreated({
+        creditor,
+        debtor,
+        adjustmentType: adj.type,
+        date: adj.date,
+        shiftStart: adj.original_shift_start,
+        shiftEnd: adj.original_shift_end,
+        adjustmentId: id,
+      }).catch((err) => console.error('[NOTIFY] obligationCreated error:', err))
+    }
+  }
 
   revalidatePath('/dashboard')
   revalidatePath('/calendar')

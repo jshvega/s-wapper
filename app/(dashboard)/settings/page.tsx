@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ScheduleEditor } from './schedule-editor'
-import type { Schedule } from '@/lib/types'
+import { NotificationPreferencesEditor } from '@/components/settings/notification-preferences'
+import type { Schedule, NotificationPreferences } from '@/lib/types'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -22,6 +23,12 @@ export default async function SettingsPage() {
 
   const profile = profileRes.data
   const schedules = (schedulesRes.data ?? []) as Schedule[]
+
+  const defaultPrefs: NotificationPreferences = {
+    email: { accepted: true, timer_warning: true, confirmed: true, expired: true, shift_reminder: true, obligation_created: true },
+    sms: { accepted: false, timer_warning: false, confirmed: false, expired: false, shift_reminder: false, obligation_created: false },
+  }
+  const notifPrefs: NotificationPreferences = profile?.notification_preferences ?? defaultPrefs
 
   return (
     <div className="p-4 lg:p-8 space-y-8 max-w-2xl">
@@ -66,6 +73,17 @@ export default async function SettingsPage() {
           </p>
         </div>
         <ScheduleEditor schedules={schedules} />
+      </section>
+
+      {/* Notification preferences */}
+      <section className="bg-white rounded-xl border p-6">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-gray-900">Notification Preferences</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Choose which notifications you receive by email and SMS.
+          </p>
+        </div>
+        <NotificationPreferencesEditor preferences={notifPrefs} />
       </section>
     </div>
   )

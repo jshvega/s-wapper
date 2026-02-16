@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import { notifyConfirmationReminder } from '@/lib/notifications/notify'
 
 /**
- * Finds adjustments expiring within the next 4 hours and logs warnings.
- * In Phase 7, this will be replaced with real notifications (email/SMS).
+ * Finds adjustments expiring within the next 4 hours and sends reminder notifications.
  */
 export async function checkExpirationWarnings() {
   const supabase = createClient(
@@ -13,10 +13,10 @@ export async function checkExpirationWarnings() {
   const now = new Date()
   const fourHoursFromNow = new Date(now.getTime() + 4 * 60 * 60 * 1000)
 
-  // Find adjustments expiring within 4 hours that haven't been warned yet
+  // Find adjustments expiring within 4 hours
   const { data: expiringSoon, error } = await supabase
     .from('adjustments')
-    .select('id, creator_id, accepter_id, type, date, expires_at')
+    .select('id, creator_id, accepter_id, type, date, expires_at, original_shift_start, original_shift_end')
     .eq('status', 'PENDING_CONFIRMATION')
     .gt('expires_at', now.toISOString())
     .lte('expires_at', fourHoursFromNow.toISOString())
@@ -35,12 +35,26 @@ export async function checkExpirationWarnings() {
     const hoursLeft = Math.floor((expiresAt.getTime() - now.getTime()) / 3600000)
     const minsLeft = Math.floor(((expiresAt.getTime() - now.getTime()) % 3600000) / 60000)
 
-    // Console.log warning for now — real notifications in Phase 7
-    console.log(
-      `[TIMER WARNING] Adjustment ${adj.id} (${adj.type} on ${adj.date}) expires in ${hoursLeft}h ${minsLeft}m. ` +
-      `Creator: ${adj.creator_id}, Accepter: ${adj.accepter_id}. ` +
-      `Please enter the Aspect Track ID to confirm.`
-    )
+    if (adj.creator_id && adj.accepter_id) {
+      const [creatorRes, accepterRes] = await Promise.all([
+        supabase.from('profiles').select('id, name, email, phone').eq('id', adj.creator_id).single(),
+        supabase.from('profiles').select('id, name, email, phone').eq('id', adj.accepter_id).single(),
+      ])
+
+      if (creatorRes.data && accepterRes.data) {
+        notifyConfirmationReminder({
+          creator: creatorRes.data,
+          accepter: accepterRes.data,
+          adjustmentType: adj.type,
+          date: adj.date,
+          shiftStart: adj.original_shift_start,
+          shiftEnd: adj.original_shift_end,
+          adjustmentId: adj.id,
+          hoursLeft,
+          minutesLeft: minsLeft,
+        }).catch((err) => console.error(`[NOTIFY] timer warning error for ${adj.id}:`, err))
+      }
+    }
   }
 
   return { warned: expiringSoon.length }
