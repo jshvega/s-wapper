@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { ExpireNowButton } from '@/components/shared/expire-now-button'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
@@ -24,7 +25,10 @@ export default async function AdminDashboard() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Admin Overview</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Admin Overview</h1>
+        <ExpireNowButton />
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Users', value: totalUsers ?? 0, color: 'text-blue-600' },

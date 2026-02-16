@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -47,10 +47,14 @@ const STATUS_BADGE: Record<string, 'default' | 'warning' | 'success' | 'destruct
 }
 
 function CountdownTimer({ expiresAt }: { expiresAt: string }) {
-  const expires = new Date(expiresAt)
-  const now = new Date()
-  const diffMs = expires.getTime() - now.getTime()
+  const [now, setNow] = useState(() => Date.now())
 
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const diffMs = new Date(expiresAt).getTime() - now
   if (diffMs <= 0) return <span className="text-red-500 text-xs font-medium">Expired</span>
 
   const hours = Math.floor(diffMs / 3600000)

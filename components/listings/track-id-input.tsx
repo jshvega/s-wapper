@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,10 +8,30 @@ import { Label } from '@/components/ui/label'
 import { confirmAdjustment } from '@/lib/actions/listings'
 import { useToast } from '@/hooks/use-toast'
 import { CheckCircle, Clock } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface TrackIdInputProps {
   adjustmentId: string
   expiresAt: string | null
+}
+
+function useCountdown(expiresAt: string | null) {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!expiresAt) return
+    const interval = setInterval(() => setNow(Date.now()), 60_000) // update every minute
+    return () => clearInterval(interval)
+  }, [expiresAt])
+
+  if (!expiresAt) return { hours: null, minutes: null, isExpired: false, isUrgent: false }
+
+  const diffMs = new Date(expiresAt).getTime() - now
+  if (diffMs <= 0) return { hours: 0, minutes: 0, isExpired: true, isUrgent: true }
+
+  const hours = Math.floor(diffMs / 3600000)
+  const minutes = Math.floor((diffMs % 3600000) / 60000)
+  return { hours, minutes, isExpired: false, isUrgent: hours < 4 }
 }
 
 export function TrackIdInput({ adjustmentId, expiresAt }: TrackIdInputProps) {
@@ -19,12 +39,7 @@ export function TrackIdInput({ adjustmentId, expiresAt }: TrackIdInputProps) {
   const { toast } = useToast()
   const [trackId, setTrackId] = useState('')
   const [isPending, startTransition] = useTransition()
-
-  const expiresDate = expiresAt ? new Date(expiresAt) : null
-  const hoursLeft = expiresDate
-    ? Math.max(0, Math.floor((expiresDate.getTime() - Date.now()) / 3600000))
-    : null
-  const isExpired = expiresDate ? expiresDate < new Date() : false
+  const { hours, minutes, isExpired, isUrgent } = useCountdown(expiresAt)
 
   const handleConfirm = () => {
     if (!trackId.trim()) {
@@ -57,9 +72,9 @@ export function TrackIdInput({ adjustmentId, expiresAt }: TrackIdInputProps) {
         <Clock className="h-4 w-4 text-amber-600" />
         <div>
           <p className="text-sm font-semibold text-amber-800">Enter Aspect Track ID</p>
-          {hoursLeft !== null && (
-            <p className={`text-xs mt-0.5 ${hoursLeft < 4 ? 'text-red-600 font-medium' : 'text-amber-600'}`}>
-              {hoursLeft}h remaining to confirm
+          {hours !== null && minutes !== null && (
+            <p className={cn('text-xs mt-0.5', isUrgent ? 'text-red-600 font-medium' : 'text-amber-600')}>
+              {hours}h {minutes}m remaining to confirm
             </p>
           )}
         </div>

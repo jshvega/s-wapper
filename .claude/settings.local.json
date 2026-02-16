@@ -6,7 +6,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(python3:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx next build:*)"
     ]
   }
 }

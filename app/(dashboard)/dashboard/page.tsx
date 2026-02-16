@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { WeeklyStrip } from '@/components/calendar/weekly-strip'
 import { calculateEffectiveSchedule } from '@/lib/utils/schedule'
 import { getWeekDates, formatDateKey } from '@/lib/utils/dates'
+import { PendingConfirmations } from '@/components/shared/pending-confirmations'
 import { Plus, Clock, CheckCircle } from 'lucide-react'
 import type { Schedule, Adjustment } from '@/lib/types'
 
@@ -156,47 +157,11 @@ export default async function DashboardPage() {
               Awaiting Confirmation
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {pendingAdjustments.map((adj) => {
-              const expiresAt = adj.expires_at ? new Date(adj.expires_at) : null
-              const hoursLeft = expiresAt
-                ? Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 3600000))
-                : null
-              const isCreator = adj.creator_id === user.id
-
-              return (
-                <div
-                  key={adj.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-amber-50 border-amber-200"
-                >
-                  <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <Badge variant="warning">{adj.type}</Badge>
-                      <span className="text-sm font-medium">
-                        {isCreator ? 'Your listing' : `From ${(adj.creator as any)?.name}`}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      {new Date(adj.date + 'T00:00:00').toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                      {hoursLeft !== null && (
-                        <span className={hoursLeft < 4 ? ' text-red-500 font-medium' : ''}>
-                          {' '}· {hoursLeft}h remaining
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <Link href={`/listings/${adj.id}`}>
-                    <Button size="sm" variant="outline" className="text-xs">
-                      Enter Track ID
-                    </Button>
-                  </Link>
-                </div>
-              )
-            })}
+          <CardContent>
+            <PendingConfirmations
+              adjustments={pendingAdjustments as Adjustment[]}
+              currentUserId={user.id}
+            />
           </CardContent>
         </Card>
       )}

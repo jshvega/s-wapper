@@ -366,6 +366,10 @@ export async function checkCoverReceivedLimit(
 /**
  * Both TPs must be scheduled to work on the swap date.
  * Neither can have it as an assigned day off.
+ *
+ * For SWAP REQUESTs with a desired_shift specified, the accepter's base shift
+ * must match the desired_shift times. For SWAP OFFERs (no desired_shift),
+ * any working user can accept.
  */
 export async function checkSwapEligibility(
   _supabase: Awaited<ReturnType<typeof createClient>>,
@@ -373,7 +377,9 @@ export async function checkSwapEligibility(
   accepterId: string,
   adjDate: string,
   creatorScheduleMap: Map<DayOfWeek, Schedule>,
-  accepterScheduleMap: Map<DayOfWeek, Schedule>
+  accepterScheduleMap: Map<DayOfWeek, Schedule>,
+  desiredShiftStart?: string | null,
+  desiredShiftEnd?: string | null,
 ): Promise<RuleViolation | null> {
   const [y, m, d] = adjDate.split('-').map(Number)
   const adjDateObj = new Date(y, m - 1, d)
@@ -394,6 +400,21 @@ export async function checkSwapEligibility(
     return {
       rule: 'SWAP_ELIGIBILITY',
       message: `You are not scheduled to work on ${dateLabel} — it's one of your assigned days off. Swaps can only happen on days both TPs are scheduled to work.`,
+    }
+  }
+
+  // For SWAP REQUESTs with a desired_shift, the accepter's base shift must match
+  if (desiredShiftStart && desiredShiftEnd && accepterDay.shift_start && accepterDay.shift_end) {
+    const accepterStart = normalizeTime(accepterDay.shift_start)
+    const accepterEnd = normalizeTime(accepterDay.shift_end)
+    const desiredStart = normalizeTime(desiredShiftStart)
+    const desiredEnd = normalizeTime(desiredShiftEnd)
+
+    if (accepterStart !== desiredStart || accepterEnd !== desiredEnd) {
+      return {
+        rule: 'SWAP_SHIFT_MISMATCH',
+        message: `Your shift (${fmtTime(accepterDay.shift_start)}–${fmtTime(accepterDay.shift_end)}) does not match the requested shift (${fmtTime(desiredShiftStart)}–${fmtTime(desiredShiftEnd)}). The creator is looking for someone with that specific shift to swap with.`,
+      }
     }
   }
 
@@ -444,13 +465,16 @@ export async function validateAcceptance(
     // ---- Swap rules ----
 
     // Rule 5: Swap eligibility (both must be working, not a day off)
+    // + shift time match for SWAP REQUESTs with desired_shift
     const eligibilityViolation = await checkSwapEligibility(
       supabase,
       adj.creator_id,
       accepterId,
       adj.date,
       creatorScheduleMap,
-      accepterScheduleMap
+      accepterScheduleMap,
+      adj.desired_shift_start,
+      adj.desired_shift_end,
     )
     if (eligibilityViolation) violations.push(eligibilityViolation)
 
@@ -614,6 +638,22 @@ export async function getEligibleListings(
           rule: 'SWAP_ELIGIBILITY',
           message: `You are not scheduled to work on this date — it's one of your assigned days off.`,
         })
+      } else if (
+        listing.desired_shift_start && listing.desired_shift_end &&
+        userDay.shift_start && userDay.shift_end
+      ) {
+        // For SWAP REQUESTs with a desired_shift, accepter's shift must match
+        const userStart = normalizeTime(userDay.shift_start)
+        const userEnd = normalizeTime(userDay.shift_end)
+        const desiredStart = normalizeTime(listing.desired_shift_start)
+        const desiredEnd = normalizeTime(listing.desired_shift_end)
+
+        if (userStart !== desiredStart || userEnd !== desiredEnd) {
+          violations.push({
+            rule: 'SWAP_SHIFT_MISMATCH',
+            message: `Your shift (${fmtTime(userDay.shift_start)}–${fmtTime(userDay.shift_end)}) doesn't match the requested shift (${fmtTime(listing.desired_shift_start)}–${fmtTime(listing.desired_shift_end)}).`,
+          })
+        }
       }
     } else if (listing.type === 'COVER') {
       if (listing.listing_type === 'REQUEST') {
@@ -696,7 +736,7 @@ export async function getEligibleListings(
 }
 
 // ---------------------------------------------------------------------------
-// Formatting helper (local, not exported)
+// Formatting / comparison helpers (local, not exported)
 // ---------------------------------------------------------------------------
 function fmtTime(t: string): string {
   const [h, min] = t.split(':')
@@ -704,4 +744,10 @@ function fmtTime(t: string): string {
   const ampm = hour >= 12 ? 'PM' : 'AM'
   const h12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
   return `${h12}:${min} ${ampm}`
+}
+
+/** Normalize "HH:MM:SS" or "HH:MM" to "HH:MM" for consistent comparison */
+function normalizeTime(t: string): string {
+  const parts = t.split(':')
+  return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`
 }

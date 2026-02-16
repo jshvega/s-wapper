@@ -175,8 +175,32 @@ export async function acceptListing(id: string) {
     adjustment_id: id,
     action: 'ACCEPTED',
     actor_id: user.id,
-    metadata: {},
+    metadata: { expires_at: expiresAt },
   })
+
+  // Fetch names for notification context
+  const { data: creatorProfile } = await supabase
+    .from('profiles')
+    .select('name, email')
+    .eq('id', listing.creator_id)
+    .single()
+  const { data: accepterProfile } = await supabase
+    .from('profiles')
+    .select('name, email')
+    .eq('id', user.id)
+    .single()
+
+  // Notify both parties (console.log for now — real notifications in Phase 7)
+  console.log(
+    `[NOTIFICATION] To creator (${creatorProfile?.email}): ` +
+    `Your ${listing.type} listing for ${listing.date} was accepted by ${accepterProfile?.name}. ` +
+    `You have 24 hours to enter the Aspect Track ID to confirm.`
+  )
+  console.log(
+    `[NOTIFICATION] To accepter (${accepterProfile?.email}): ` +
+    `You accepted ${creatorProfile?.name}'s ${listing.type} listing for ${listing.date}. ` +
+    `Either party has 24 hours to enter the Aspect Track ID to confirm.`
+  )
 
   revalidatePath('/marketplace')
   revalidatePath('/dashboard')
@@ -249,6 +273,20 @@ export async function confirmAdjustment(id: string, trackId: string) {
     actor_id: user.id,
     metadata: { track_id: trackId.trim() },
   })
+
+  // Notify both parties of confirmation (console.log for now)
+  const otherPartyId = adj.creator_id === user.id ? adj.accepter_id : adj.creator_id
+  const [confirmerRes, otherRes] = await Promise.all([
+    supabase.from('profiles').select('name, email').eq('id', user.id).single(),
+    otherPartyId
+      ? supabase.from('profiles').select('name, email').eq('id', otherPartyId).single()
+      : Promise.resolve({ data: null }),
+  ])
+
+  console.log(
+    `[NOTIFICATION] To ${otherRes.data?.email ?? 'other party'}: ` +
+    `${confirmerRes.data?.name} confirmed the ${adj.type} for ${adj.date} with Track ID: ${trackId.trim()}`
+  )
 
   revalidatePath('/dashboard')
   revalidatePath('/calendar')
