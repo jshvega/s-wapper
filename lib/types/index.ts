@@ -94,6 +94,8 @@ export interface LedgerEntry {
   is_settled: boolean
   settled_at: string | null
   settlement_type: SettlementType | null
+  reconciled_with_id: string | null
+  auto_reconciled: boolean
   created_at: string
   // Joined fields
   creditor?: Profile

@@ -259,12 +259,84 @@ export async function confirmAdjustment(id: string, trackId: string) {
     const creditorId = isCreatorGivingCover ? adj.creator_id : adj.accepter_id
     const debtorId = isCreatorGivingCover ? adj.accepter_id : adj.creator_id
 
-    await supabase.from('ledger_entries').insert({
-      creditor_id: creditorId,
-      debtor_id: debtorId,
-      adjustment_id: id,
-      is_settled: false,
-    })
+    const { data: newEntry, error: insertError } = await supabase
+      .from('ledger_entries')
+      .insert({
+        creditor_id: creditorId,
+        debtor_id: debtorId,
+        adjustment_id: id,
+        is_settled: false,
+      })
+      .select('id')
+      .single()
+
+    console.log(
+      `[LEDGER] New ledger entry: creditor=${creditorId}, debtor=${debtorId}`,
+      newEntry ? `id=${newEntry.id}` : `insert failed: ${insertError?.message}`
+    )
+
+    // Auto-reconciliation: check if there's an unsettled entry in the opposite
+    // direction — where the NEW entry's debtor previously covered the creditor.
+    // e.g., new entry: A covered B (creditor=A, debtor=B)
+    //        opposite: B covered A (creditor=B, debtor=A) — still unsettled
+    // If found, both debts cancel out — settle both as COVER_RETURNED.
+    if (newEntry) {
+      console.log(
+        `[LEDGER] Checking for opposite entry where creditor=${debtorId} and debtor=${creditorId}, is_settled=false`
+      )
+
+      const { data: opposite, error: oppositeError } = await supabase
+        .from('ledger_entries')
+        .select('id')
+        .eq('creditor_id', debtorId)
+        .eq('debtor_id', creditorId)
+        .eq('is_settled', false)
+        .neq('id', newEntry.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (oppositeError) {
+        console.log(`[LEDGER] Opposite entry query error: ${oppositeError.message}`)
+      } else if (opposite) {
+        console.log(`[LEDGER] Found opposite entry id=${opposite.id}, auto-reconciling both`)
+
+        const now = new Date().toISOString()
+
+        // Settle both entries as auto-reconciled
+        const [updateNewRes, updateOppRes] = await Promise.all([
+          supabase
+            .from('ledger_entries')
+            .update({
+              is_settled: true,
+              settled_at: now,
+              settlement_type: 'COVER_RETURNED',
+              reconciled_with_id: opposite.id,
+              auto_reconciled: true,
+            })
+            .eq('id', newEntry.id),
+          supabase
+            .from('ledger_entries')
+            .update({
+              is_settled: true,
+              settled_at: now,
+              settlement_type: 'COVER_RETURNED',
+              reconciled_with_id: newEntry.id,
+              auto_reconciled: true,
+            })
+            .eq('id', opposite.id),
+        ])
+
+        if (updateNewRes.error) {
+          console.log(`[LEDGER] Failed to settle new entry: ${updateNewRes.error.message}`)
+        }
+        if (updateOppRes.error) {
+          console.log(`[LEDGER] Failed to settle opposite entry: ${updateOppRes.error.message}`)
+        }
+      } else {
+        console.log('[LEDGER] No opposite entry found, no auto-reconciliation')
+      }
+    }
   }
 
   await supabase.from('adjustment_logs').insert({

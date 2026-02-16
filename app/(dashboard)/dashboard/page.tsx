@@ -31,6 +31,7 @@ export default async function DashboardPage() {
     weekAdjRes,
     openCountRes,
     ledgerOwedRes,
+    ledgerOwedToMeRes,
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase
@@ -61,6 +62,11 @@ export default async function DashboardPage() {
       .select('id')
       .eq('debtor_id', user.id)
       .eq('is_settled', false),
+    supabase
+      .from('ledger_entries')
+      .select('id')
+      .eq('creditor_id', user.id)
+      .eq('is_settled', false),
   ])
 
   const profile = profileRes.data
@@ -69,6 +75,7 @@ export default async function DashboardPage() {
   const weekAdjustments = (weekAdjRes.data ?? []) as Adjustment[]
   const openCount = openCountRes.count ?? 0
   const ledgerOwed = ledgerOwedRes.data ?? []
+  const ledgerOwedToMe = ledgerOwedToMeRes.data ?? []
 
   // Compute effective shifts for the weekly strip
   const effectiveShifts = calculateEffectiveSchedule(
@@ -121,13 +128,13 @@ export default async function DashboardPage() {
       </Card>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
             <p className="text-2xl font-bold text-blue-600">{openCount}</p>
             <p className="text-xs text-gray-500 mt-1">Open Listings</p>
             <Link href="/marketplace" className="text-xs text-blue-600 hover:underline mt-1 block">
-              View
+              Browse
             </Link>
           </CardContent>
         </Card>
@@ -139,10 +146,19 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-2xl font-bold text-purple-600">{ledgerOwed.length}</p>
-            <p className="text-xs text-gray-500 mt-1">Covers Owed</p>
+            <p className="text-2xl font-bold text-amber-600">{ledgerOwed.length}</p>
+            <p className="text-xs text-gray-500 mt-1">You Owe</p>
             <Link href="/ledger" className="text-xs text-blue-600 hover:underline mt-1 block">
-              View
+              Ledger
+            </Link>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4 text-center">
+            <p className="text-2xl font-bold text-teal-600">{ledgerOwedToMe.length}</p>
+            <p className="text-xs text-gray-500 mt-1">Owed to You</p>
+            <Link href="/ledger" className="text-xs text-blue-600 hover:underline mt-1 block">
+              Ledger
             </Link>
           </CardContent>
         </Card>
