@@ -24,6 +24,9 @@ export type LogAction =
   | 'CONFIRMED'
   | 'EXPIRED'
   | 'REMOVED'
+  | 'ADMIN_FORCE_EXPIRED'
+  | 'ADMIN_FORCE_CONFIRMED'
+  | 'ADMIN_NOTE'
 
 export type NotificationType =
   | 'NEW_MATCH'
