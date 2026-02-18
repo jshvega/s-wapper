@@ -59,12 +59,12 @@ export default async function DashboardPage() {
       .neq('creator_id', user.id),
     supabase
       .from('ledger_entries')
-      .select('id')
+      .select('id, adjustment:adjustments!adjustment_id(status)')
       .eq('debtor_id', user.id)
       .eq('is_settled', false),
     supabase
       .from('ledger_entries')
-      .select('id')
+      .select('id, adjustment:adjustments!adjustment_id(status)')
       .eq('creditor_id', user.id)
       .eq('is_settled', false),
   ])
@@ -74,8 +74,14 @@ export default async function DashboardPage() {
   const pendingAdjustments = pendingRes.data ?? []
   const weekAdjustments = (weekAdjRes.data ?? []) as Adjustment[]
   const openCount = openCountRes.count ?? 0
-  const ledgerOwed = ledgerOwedRes.data ?? []
-  const ledgerOwedToMe = ledgerOwedToMeRes.data ?? []
+  // Only count ledger entries whose adjustment is still CONFIRMED — matches the
+  // ledger page's activeLedger filter so both pages always agree.
+  const isActiveLedgerEntry = (e: { adjustment?: { status?: string } | null }) => {
+    const s = (e.adjustment as any)?.status
+    return !s || s === 'CONFIRMED'
+  }
+  const ledgerOwedCount = (ledgerOwedRes.data ?? []).filter(isActiveLedgerEntry).length
+  const ledgerOwedToMeCount = (ledgerOwedToMeRes.data ?? []).filter(isActiveLedgerEntry).length
 
   // Compute effective shifts for the weekly strip
   const effectiveShifts = calculateEffectiveSchedule(
@@ -146,7 +152,7 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-2xl font-bold text-amber-600">{ledgerOwed.length}</p>
+            <p className="text-2xl font-bold text-amber-600">{ledgerOwedCount}</p>
             <p className="text-xs text-gray-500 mt-1">You Owe</p>
             <Link href="/ledger" className="text-xs text-blue-600 hover:underline mt-1 block">
               Ledger
@@ -155,7 +161,7 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardContent className="pt-4 pb-4 text-center">
-            <p className="text-2xl font-bold text-teal-600">{ledgerOwedToMe.length}</p>
+            <p className="text-2xl font-bold text-teal-600">{ledgerOwedToMeCount}</p>
             <p className="text-xs text-gray-500 mt-1">Owed to You</p>
             <Link href="/ledger" className="text-xs text-blue-600 hover:underline mt-1 block">
               Ledger
@@ -189,20 +195,20 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-2">
           <Link href="/listings/new">
-            <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3">
-              <Plus className="h-4 w-4 text-blue-600" />
-              <div className="text-left">
-                <p className="text-sm font-medium">Create Listing</p>
-                <p className="text-xs text-gray-500">Request or offer a swap/cover</p>
+            <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3 px-2 sm:px-4">
+              <Plus className="h-4 w-4 text-blue-600 shrink-0" />
+              <div className="text-left min-w-0">
+                <p className="text-xs sm:text-sm font-medium truncate">Create Listing</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 truncate">Request or offer a swap/cover</p>
               </div>
             </Button>
           </Link>
           <Link href="/marketplace">
-            <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <div className="text-left">
-                <p className="text-sm font-medium">Browse Market</p>
-                <p className="text-xs text-gray-500">Find swaps & covers to accept</p>
+            <Button variant="outline" className="w-full justify-start gap-2 h-auto py-3 px-2 sm:px-4">
+              <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+              <div className="text-left min-w-0">
+                <p className="text-xs sm:text-sm font-medium truncate">Browse Market</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 truncate">Find swaps & covers</p>
               </div>
             </Button>
           </Link>

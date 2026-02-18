@@ -14,8 +14,9 @@ export type AdjustmentStatus =
   | 'CONFIRMED'
   | 'EXPIRED'
   | 'REMOVED'
+  | 'CANCELLED'
 
-export type SettlementType = 'COVER_RETURNED' | 'CASH' | 'FORGIVEN'
+export type SettlementType = 'COVER_RETURNED' | 'CASH' | 'FORGIVEN' | 'CANCELLED'
 
 export type LogAction =
   | 'CREATED'
@@ -27,6 +28,7 @@ export type LogAction =
   | 'ADMIN_FORCE_EXPIRED'
   | 'ADMIN_FORCE_CONFIRMED'
   | 'ADMIN_NOTE'
+  | 'CANCELLED'
 
 export type NotificationType =
   | 'NEW_MATCH'
@@ -92,11 +94,12 @@ export interface Adjustment {
   desired_shift_start: string | null
   desired_shift_end: string | null
   notes: string | null
-  aspect_track_id: string | null
+  aspect_trade_id: string | null
   accepted_at: string | null
   confirmed_at: string | null
   expires_at: string | null
   created_at: string
+  is_legacy: boolean
   updated_at: string
   // Joined fields
   creator?: Profile
@@ -140,6 +143,22 @@ export interface Notification {
   content_summary: string | null
   related_adjustment_id: string | null
   sent_at: string | null
+  created_at: string
+}
+
+export interface PendingDebt {
+  id: string
+  creator_id: string
+  type: AdjustmentType
+  date: string
+  shift_start: string | null
+  shift_end: string | null
+  other_party_name: string
+  aspect_trade_id: string | null
+  notes: string | null
+  role: 'CREDITOR' | 'DEBTOR'
+  linked_adjustment_id: string | null
+  linked_at: string | null
   created_at: string
 }
 

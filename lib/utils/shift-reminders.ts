@@ -21,7 +21,7 @@ export async function sendShiftReminders() {
 
   const { data: adjustments, error } = await supabase
     .from('adjustments')
-    .select('id, creator_id, accepter_id, type, date, original_shift_start, original_shift_end, aspect_track_id')
+    .select('id, creator_id, accepter_id, type, date, original_shift_start, original_shift_end, aspect_trade_id')
     .eq('status', 'CONFIRMED')
     .eq('date', tomorrowKey)
 
@@ -57,7 +57,7 @@ export async function sendShiftReminders() {
         date: adj.date,
         shiftStart: adj.original_shift_start,
         shiftEnd: adj.original_shift_end,
-        trackId: adj.aspect_track_id ?? undefined,
+        tradeId: adj.aspect_trade_id ?? undefined,
         adjustmentId: adj.id,
       }).catch((err) => console.error(`[NOTIFY] shift reminder error for ${adj.id}:`, err))
     }

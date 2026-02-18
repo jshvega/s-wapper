@@ -60,6 +60,7 @@ function settlementLabel(type: string | null): string {
     case 'COVER_RETURNED': return 'Cover Returned'
     case 'CASH': return 'Cash'
     case 'FORGIVEN': return 'Forgiven'
+    case 'CANCELLED': return 'Adjustment Cancelled'
     default: return 'Unknown'
   }
 }
@@ -234,9 +235,9 @@ function EntryRow({
               : ''}
           </p>
         )}
-        {entry.adjustment?.aspect_track_id && !entry.is_settled && (
+        {entry.adjustment?.aspect_trade_id && !entry.is_settled && (
           <p className="text-xs text-gray-400">
-            Track: {entry.adjustment.aspect_track_id}
+            Track: {entry.adjustment.aspect_trade_id}
           </p>
         )}
       </div>

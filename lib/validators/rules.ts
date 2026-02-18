@@ -152,6 +152,7 @@ export async function checkRestBetweenShifts(
   proposedEnd: string,
   scheduleMap: Map<DayOfWeek, Schedule>
 ): Promise<RuleViolation | null> {
+  console.log(`[RULES] 8-Hour Rest: userId=${userId}, date=${adjDate}, shift=${proposedStart}–${proposedEnd}`)
   const [y, m, d] = adjDate.split('-').map(Number)
   const adjDateObj = new Date(y, m - 1, d)
 
@@ -205,6 +206,7 @@ export async function checkWeeklyRest(
   adjDate: string,
   scheduleMap: Map<DayOfWeek, Schedule>
 ): Promise<RuleViolation | null> {
+  console.log(`[RULES] Weekly Rest: userId=${userId}, date=${adjDate}`)
   // Get the user's two days off from their base schedule
   const daysOff: DayOfWeek[] = Array.from(scheduleMap.entries())
     .filter(([, s]) => s.is_day_off)
@@ -279,6 +281,7 @@ export async function checkCoverGivenLimit(
   userId: string,
   adjDate: string
 ): Promise<RuleViolation | null> {
+  console.log(`[RULES] Cover Given Limit: userId=${userId}, date=${adjDate}`)
   const { weekStart, weekEnd } = getWeekBounds(adjDate)
 
   const { data } = await supabase
@@ -326,6 +329,7 @@ export async function checkCoverReceivedLimit(
   userId: string,
   adjDate: string
 ): Promise<RuleViolation | null> {
+  console.log(`[RULES] Cover Received Limit: userId=${userId}, date=${adjDate}`)
   const { monthStart, monthEnd } = getMonthBoundsCST(adjDate)
 
   const { data, count } = await supabase
@@ -381,6 +385,7 @@ export async function checkSwapEligibility(
   desiredShiftStart?: string | null,
   desiredShiftEnd?: string | null,
 ): Promise<RuleViolation | null> {
+  console.log(`[RULES] Swap Eligibility: creatorId=${creatorId}, accepterId=${accepterId}, date=${adjDate}`)
   const [y, m, d] = adjDate.split('-').map(Number)
   const adjDateObj = new Date(y, m - 1, d)
   const dow = jsDateToDayOfWeek(adjDateObj)
@@ -434,6 +439,7 @@ export async function validateAcceptance(
   accepterId: string
 ): Promise<ValidationResult> {
   const supabase = await createClient()
+  console.log(`[RULES] validateAcceptance: listingId=${listingId}, accepterId=${accepterId}`)
 
   // Fetch the listing
   const { data: adjData } = await supabase
@@ -525,6 +531,22 @@ export async function validateAcceptance(
     if (isAccepterGiving) {
       // Accepter is giving the cover
 
+      // Cover Eligibility: accepter must be OFF on this date.
+      // They're agreeing to work the creator's shift — they cannot already be working.
+      const [ey, em, ed] = adj.date.split('-').map(Number)
+      const adjDateObjE = new Date(ey, em - 1, ed)
+      const adjDowE = jsDateToDayOfWeek(adjDateObjE)
+      const accepterBaseDay = accepterScheduleMap.get(adjDowE)
+      const accepterIsOff = accepterBaseDay?.is_day_off ?? false
+      const dateLabelE = adjDateObjE.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+      console.log(`[RULES] Cover Eligibility (REQUEST/accepter giving): accepterId=${accepterId}, date=${adj.date}, dow=${adjDowE}, is_day_off=${accepterIsOff}`)
+      if (!accepterIsOff) {
+        violations.push({
+          rule: 'COVER_ELIGIBILITY',
+          message: `You are scheduled to work on ${dateLabelE}. To give a cover you must have that day off on your schedule — you cannot work two shifts on the same day.`,
+        })
+      }
+
       // Rule 1: 8-hour rest for the accepter (they work the listed shift)
       const restViolation = await checkRestBetweenShifts(
         supabase,
@@ -552,6 +574,22 @@ export async function validateAcceptance(
 
     if (isCreatorGiving) {
       // Creator is giving the cover — check their limits too
+
+      // Cover Eligibility: accepter must be WORKING on this date.
+      // They're having their shift covered — they must have a shift to cover.
+      const [oy, om, od] = adj.date.split('-').map(Number)
+      const adjDateObjO = new Date(oy, om - 1, od)
+      const adjDowO = jsDateToDayOfWeek(adjDateObjO)
+      const accepterBaseDayO = accepterScheduleMap.get(adjDowO)
+      const accepterIsWorking = accepterBaseDayO ? !accepterBaseDayO.is_day_off : false
+      const dateLabelO = adjDateObjO.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+      console.log(`[RULES] Cover Eligibility (OFFER/accepter receiving): accepterId=${accepterId}, date=${adj.date}, dow=${adjDowO}, is_working=${accepterIsWorking}`)
+      if (!accepterIsWorking) {
+        violations.push({
+          rule: 'COVER_ELIGIBILITY',
+          message: `You are not scheduled to work on ${dateLabelO}. A cover can only be received for a day you're already scheduled to work.`,
+        })
+      }
 
       // Rule 3: Cover given limit for creator (1/week)
       const creatorCoverGivenViolation = await checkCoverGivenLimit(supabase, adj.creator_id, adj.date)
@@ -656,8 +694,26 @@ export async function getEligibleListings(
         }
       }
     } else if (listing.type === 'COVER') {
+      // Resolve user's base schedule for the listing date (used by multiple checks below)
+      const [ly, lm, ld] = listingDate.split('-').map(Number)
+      const listingDateObj = new Date(ly, lm - 1, ld)
+      const listingDow = jsDateToDayOfWeek(listingDateObj)
+      const userDayForListing = userScheduleMap.get(listingDow)
+
       if (listing.listing_type === 'REQUEST') {
-        // Accepter would give cover → check cover given limit (1/week)
+        // Accepter would give cover
+
+        // Cover Eligibility: user must be OFF on this date to give a cover
+        const userIsOff = userDayForListing?.is_day_off ?? false
+        console.log(`[RULES] getEligibleListings Cover Eligibility (REQUEST): userId=${userId}, date=${listingDate}, dow=${listingDow}, is_day_off=${userIsOff}`)
+        if (!userIsOff) {
+          violations.push({
+            rule: 'COVER_ELIGIBILITY',
+            message: `You must have this day off on your schedule to give a cover — you cannot work two shifts on the same day.`,
+          })
+        }
+
+        // Cover Given Limit (1/week)
         const { weekStart, weekEnd } = getWeekBounds(listingDate)
         const coversGivenThisWeek = userActiveAdjs.filter((a) => {
           if (a.type !== 'COVER') return false
@@ -677,19 +733,12 @@ export async function getEligibleListings(
           })
         }
 
-        // Weekly rest: check if adj date is a day off and other day off is already worked
-        const [y, m, d] = listingDate.split('-').map(Number)
-        const adjDateObj = new Date(y, m - 1, d)
-        const dow = jsDateToDayOfWeek(adjDateObj)
-        const userDay = userScheduleMap.get(dow)
-
-        if (userDay?.is_day_off) {
-          // Check if other day off is already worked this week
-          const { weekStart, weekEnd } = getWeekBounds(listingDate)
+        // Weekly rest: only relevant when the listing date IS one of the user's days off
+        if (userDayForListing?.is_day_off) {
           const daysOff: DayOfWeek[] = Array.from(userScheduleMap.entries())
             .filter(([, s]) => s.is_day_off)
             .map(([d2]) => d2)
-          const otherDow = daysOff.find((d2) => d2 !== dow)
+          const otherDow = daysOff.find((d2) => d2 !== listingDow)
           if (otherDow) {
             const otherDate = getDayOfWeekInWeek(weekStart, otherDow)
             const alreadyWorkingOtherDayOff = userActiveAdjs.some((a) => {
@@ -708,7 +757,19 @@ export async function getEligibleListings(
           }
         }
       } else if (listing.listing_type === 'OFFER') {
-        // Accepter would receive cover → check cover received limit (5/month)
+        // Accepter would receive cover
+
+        // Cover Eligibility: user must be WORKING on this date to receive a cover
+        const userIsWorking = userDayForListing ? !userDayForListing.is_day_off : false
+        console.log(`[RULES] getEligibleListings Cover Eligibility (OFFER): userId=${userId}, date=${listingDate}, dow=${listingDow}, is_working=${userIsWorking}`)
+        if (!userIsWorking) {
+          violations.push({
+            rule: 'COVER_ELIGIBILITY',
+            message: `You must be scheduled to work on this date to receive a cover.`,
+          })
+        }
+
+        // Cover Received Limit (5/month)
         const { monthStart, monthEnd } = getMonthBoundsCST(listingDate)
         const coversReceivedThisMonth = userActiveAdjs.filter((a) => {
           if (a.type !== 'COVER') return false

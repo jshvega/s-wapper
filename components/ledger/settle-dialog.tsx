@@ -77,10 +77,10 @@ export function SettleDialog({ entry, open, onOpenChange, currentUserId }: Settl
               {formatTime(entry.adjustment?.original_shift_start ?? null)} –{' '}
               {formatTime(entry.adjustment?.original_shift_end ?? null)}
             </p>
-            {entry.adjustment?.aspect_track_id && (
+            {entry.adjustment?.aspect_trade_id && (
               <p>
-                <span className="font-medium">Track ID:</span>{' '}
-                {entry.adjustment.aspect_track_id}
+                <span className="font-medium">Trade ID:</span>{' '}
+                {entry.adjustment.aspect_trade_id}
               </p>
             )}
           </div>

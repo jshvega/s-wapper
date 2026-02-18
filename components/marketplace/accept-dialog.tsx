@@ -61,7 +61,7 @@ export function AcceptDialog({ adj, violations = [], onClose }: AcceptDialogProp
       } else {
         toast({
           title: 'Accepted!',
-          description: 'You have 24 hours to enter the Aspect Track ID.',
+          description: 'You have 24 hours to enter the Aspect Trade ID.',
         })
         onClose()
         router.push(`/listings/${adj.id}`)
@@ -82,7 +82,7 @@ export function AcceptDialog({ adj, violations = [], onClose }: AcceptDialogProp
             {preBlocked
               ? 'This listing cannot be accepted because it would violate one or more scheduling rules.'
               : isSwap
-              ? "You'll swap shifts with this person. Once you accept, both of you have 24 hours to confirm with an Aspect Track ID."
+              ? "You'll swap shifts with this person. Once you accept, both of you have 24 hours to confirm with an Aspect Trade ID."
               : adj.listing_type === 'REQUEST'
               ? "You'll be covering their shift. A cover obligation will be created once confirmed."
               : "They'll be covering your shift. A cover obligation will be created once confirmed."}
@@ -140,7 +140,7 @@ export function AcceptDialog({ adj, violations = [], onClose }: AcceptDialogProp
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
               <p className="text-xs font-medium text-amber-800">After accepting:</p>
               <p className="text-xs text-amber-700 mt-1">
-                You and {(adj.creator as any)?.name?.split(' ')[0]} will have 24 hours to enter the Aspect Track ID to confirm the adjustment.
+                You and {(adj.creator as any)?.name?.split(' ')[0]} will have 24 hours to enter the Aspect Trade ID to confirm the adjustment.
               </p>
             </div>
           )}

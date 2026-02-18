@@ -13,6 +13,7 @@ const statusColors: Record<string, string> = {
   CONFIRMED: 'bg-green-100 text-green-700',
   EXPIRED: 'bg-red-100 text-red-700',
   REMOVED: 'bg-gray-100 text-gray-500',
+  CANCELLED: 'bg-red-100 text-red-700',
 }
 
 const actionLabels: Record<string, { label: string; color: string }> = {
@@ -25,6 +26,7 @@ const actionLabels: Record<string, { label: string; color: string }> = {
   ADMIN_FORCE_EXPIRED: { label: 'Force Expired (Admin)', color: 'text-red-700' },
   ADMIN_FORCE_CONFIRMED: { label: 'Force Confirmed (Admin)', color: 'text-green-700' },
   ADMIN_NOTE: { label: 'Admin Note', color: 'text-purple-600' },
+  CANCELLED: { label: 'Cancelled', color: 'text-red-600' },
 }
 
 export function AdminAdjustmentDetail({
@@ -37,7 +39,7 @@ export function AdminAdjustmentDetail({
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [trackId, setTrackId] = useState('')
+  const [tradeId, setTradeId] = useState('')
   const [note, setNote] = useState('')
 
   const isPending = adjustment.status === 'PENDING_CONFIRMATION'
@@ -57,19 +59,19 @@ export function AdminAdjustmentDetail({
   }
 
   const handleForceConfirm = async () => {
-    if (!trackId.trim()) {
-      setMessage({ type: 'error', text: 'Track ID is required' })
+    if (!tradeId.trim()) {
+      setMessage({ type: 'error', text: 'Trade ID is required' })
       return
     }
     if (!confirm('Are you sure you want to force confirm this adjustment?')) return
     setLoading('confirm')
     setMessage(null)
-    const result = await forceConfirmAdjustment(adjustment.id, trackId)
+    const result = await forceConfirmAdjustment(adjustment.id, tradeId)
     if (result.error) {
       setMessage({ type: 'error', text: result.error })
     } else {
       setMessage({ type: 'success', text: 'Adjustment force confirmed' })
-      setTrackId('')
+      setTradeId('')
       router.refresh()
     }
     setLoading(null)
@@ -150,9 +152,9 @@ export function AdminAdjustmentDetail({
               </div>
             )}
             <div>
-              <p className="text-xs text-gray-500">Track ID</p>
+              <p className="text-xs text-gray-500">Trade ID</p>
               <p className="font-mono text-gray-900">
-                {adjustment.aspect_track_id ?? '—'}
+                {adjustment.aspect_trade_id ?? '—'}
               </p>
             </div>
           </div>
@@ -241,14 +243,14 @@ export function AdminAdjustmentDetail({
               <div className="space-y-2">
                 <input
                   type="text"
-                  placeholder="Enter Track ID..."
-                  value={trackId}
-                  onChange={(e) => setTrackId(e.target.value)}
+                  placeholder="Enter Trade ID..."
+                  value={tradeId}
+                  onChange={(e) => setTradeId(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
                 <button
                   onClick={handleForceConfirm}
-                  disabled={loading !== null || !trackId.trim()}
+                  disabled={loading !== null || !tradeId.trim()}
                   className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition-colors disabled:opacity-50"
                 >
                   {loading === 'confirm' ? 'Confirming...' : 'Force Confirm'}

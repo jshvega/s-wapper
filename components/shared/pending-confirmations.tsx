@@ -65,7 +65,7 @@ export function PendingConfirmations({ adjustments, currentUserId }: PendingConf
             </div>
             <Link href={`/listings/${adj.id}`}>
               <Button size="sm" variant="outline" className="text-xs">
-                Enter Track ID
+                Enter Trade ID
               </Button>
             </Link>
           </div>

@@ -117,10 +117,10 @@ export async function forceExpireAdjustment(adjustmentId: string) {
 
 // ---- Force confirm a specific adjustment ----
 
-export async function forceConfirmAdjustment(adjustmentId: string, trackId: string) {
+export async function forceConfirmAdjustment(adjustmentId: string, tradeId: string) {
   const { supabase, user } = await requireAdmin()
 
-  if (!trackId.trim()) return { error: 'Track ID is required' }
+  if (!tradeId.trim()) return { error: 'Trade ID is required' }
 
   const { data: adj, error: fetchError } = await supabase
     .from('adjustments')
@@ -139,7 +139,7 @@ export async function forceConfirmAdjustment(adjustmentId: string, trackId: stri
     .from('adjustments')
     .update({
       status: 'CONFIRMED',
-      aspect_track_id: trackId.trim(),
+      aspect_trade_id: tradeId.trim(),
       confirmed_at: now,
       updated_at: now,
     })
@@ -151,7 +151,7 @@ export async function forceConfirmAdjustment(adjustmentId: string, trackId: stri
     adjustment_id: adjustmentId,
     action: 'ADMIN_FORCE_CONFIRMED',
     actor_id: user.id,
-    metadata: { reason: 'admin_force_confirm', track_id: trackId.trim() },
+    metadata: { reason: 'admin_force_confirm', trade_id: tradeId.trim() },
   })
 
   // Create ledger entry for COVER type

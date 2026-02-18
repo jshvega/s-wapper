@@ -25,7 +25,7 @@ export default async function ListingsPage() {
 
   // Group by status for display
   const active = listings.filter((l) => ['DRAFT', 'OPEN', 'PENDING_CONFIRMATION'].includes(l.status))
-  const settled = listings.filter((l) => ['CONFIRMED', 'EXPIRED'].includes(l.status))
+  const settled = listings.filter((l) => ['CONFIRMED', 'EXPIRED', 'CANCELLED'].includes(l.status))
 
   return (
     <div className="p-4 lg:p-8 max-w-2xl">

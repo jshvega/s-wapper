@@ -18,6 +18,7 @@ const STATUS_BADGE: Record<string, { variant: 'default' | 'secondary' | 'warning
   CONFIRMED:            { variant: 'success',   label: 'Confirmed' },
   EXPIRED:              { variant: 'destructive', label: 'Expired' },
   REMOVED:              { variant: 'secondary', label: 'Removed' },
+  CANCELLED:            { variant: 'destructive', label: 'Cancelled' },
 }
 
 interface MyListingCardProps {
@@ -100,14 +101,14 @@ export function MyListingCard({ adj }: MyListingCardProps) {
               <div className="flex items-center gap-1 mt-1.5">
                 <Clock className="h-3 w-3 text-amber-500" />
                 <span className={`text-xs font-medium ${hoursLeft < 4 ? 'text-red-600' : 'text-amber-600'}`}>
-                  {hoursLeft}h to enter Track ID
+                  {hoursLeft}h to enter Trade ID
                 </span>
               </div>
             )}
 
-            {/* Track ID */}
-            {adj.aspect_track_id && (
-              <p className="text-xs text-green-700 mt-1">Track ID: {adj.aspect_track_id}</p>
+            {/* Trade ID */}
+            {adj.aspect_trade_id && (
+              <p className="text-xs text-green-700 mt-1">Trade ID: {adj.aspect_trade_id}</p>
             )}
 
             {/* Accepter info */}
@@ -120,8 +121,8 @@ export function MyListingCard({ adj }: MyListingCardProps) {
 
           {/* Actions */}
           <div className="flex flex-col gap-1.5 items-end shrink-0">
-            <Link href={`/listings/${adj.id}`}>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <Link href={`/listings/${adj.id}`} aria-label="View listing details">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label="View listing details">
                 <ExternalLink className="h-3.5 w-3.5" />
               </Button>
             </Link>
@@ -149,7 +150,7 @@ export function MyListingCard({ adj }: MyListingCardProps) {
             {adj.status === 'PENDING_CONFIRMATION' && (
               <Link href={`/listings/${adj.id}`}>
                 <Button size="sm" className="text-xs h-8 bg-amber-500 hover:bg-amber-600">
-                  Enter Track ID
+                  Enter Trade ID
                 </Button>
               </Link>
             )}

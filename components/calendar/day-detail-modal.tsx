@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   CONFIRMED: 'Confirmed',
   EXPIRED: 'Expired',
   REMOVED: 'Removed',
+  CANCELLED: 'Cancelled',
 }
 
 const STATUS_BADGE: Record<string, 'default' | 'warning' | 'success' | 'destructive' | 'secondary' | 'outline'> = {
@@ -44,6 +45,7 @@ const STATUS_BADGE: Record<string, 'default' | 'warning' | 'success' | 'destruct
   CONFIRMED: 'success',
   EXPIRED: 'destructive',
   REMOVED: 'outline',
+  CANCELLED: 'destructive',
 }
 
 function CountdownTimer({ expiresAt }: { expiresAt: string }) {
@@ -67,29 +69,29 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
   )
 }
 
-function TrackIdForm({
+function TradeIdForm({
   adjustmentId,
   onSuccess,
 }: {
   adjustmentId: string
   onSuccess: () => void
 }) {
-  const [trackId, setTrackId] = useState('')
+  const [tradeId, setTradeId] = useState('')
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!trackId.trim()) return
+    if (!tradeId.trim()) return
 
     setLoading(true)
-    const result = await confirmAdjustment(adjustmentId, trackId.trim())
+    const result = await confirmAdjustment(adjustmentId, tradeId.trim())
     setLoading(false)
 
     if (result?.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' })
     } else {
-      toast({ title: 'Confirmed!', description: 'Adjustment confirmed with Track ID.' })
+      toast({ title: 'Confirmed!', description: 'Adjustment confirmed with Trade ID.' })
       onSuccess()
     }
   }
@@ -97,12 +99,12 @@ function TrackIdForm({
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 mt-2">
       <Input
-        value={trackId}
-        onChange={(e) => setTrackId(e.target.value)}
-        placeholder="Aspect Track ID"
+        value={tradeId}
+        onChange={(e) => setTradeId(e.target.value)}
+        placeholder="Aspect Trade ID"
         className="h-8 text-sm flex-1"
       />
-      <Button type="submit" size="sm" disabled={loading || !trackId.trim()} className="h-8">
+      <Button type="submit" size="sm" disabled={loading || !tradeId.trim()} className="h-8">
         {loading ? '...' : 'Confirm'}
       </Button>
     </form>
@@ -175,10 +177,10 @@ function AdjustmentCard({
         )}
       </div>
 
-      {/* Track ID */}
-      {adj.aspect_track_id && (
+      {/* Trade ID */}
+      {adj.aspect_trade_id && (
         <p className="text-xs font-mono text-green-700 bg-green-100 px-2 py-0.5 rounded">
-          Track ID: {adj.aspect_track_id}
+          Trade ID: {adj.aspect_trade_id}
         </p>
       )}
 
@@ -187,12 +189,12 @@ function AdjustmentCard({
         <p className="text-xs text-gray-500 italic">"{adj.notes}"</p>
       )}
 
-      {/* Countdown + Track ID entry */}
+      {/* Countdown + Trade ID entry */}
       {adj.status === 'PENDING_CONFIRMATION' && adj.expires_at && (
         <div className="space-y-1.5">
           <CountdownTimer expiresAt={adj.expires_at} />
           {canConfirm && (
-            <TrackIdForm adjustmentId={adj.id} onSuccess={onConfirmed} />
+            <TradeIdForm adjustmentId={adj.id} onSuccess={onConfirmed} />
           )}
         </div>
       )}

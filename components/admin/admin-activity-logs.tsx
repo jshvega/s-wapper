@@ -14,6 +14,7 @@ const ALL_ACTIONS = [
   'ADMIN_FORCE_EXPIRED',
   'ADMIN_FORCE_CONFIRMED',
   'ADMIN_NOTE',
+  'CANCELLED',
 ]
 
 const actionLabels: Record<string, { label: string; color: string }> = {
@@ -26,6 +27,7 @@ const actionLabels: Record<string, { label: string; color: string }> = {
   ADMIN_FORCE_EXPIRED: { label: 'Force Expired', color: 'text-red-700' },
   ADMIN_FORCE_CONFIRMED: { label: 'Force Confirmed', color: 'text-green-700' },
   ADMIN_NOTE: { label: 'Admin Note', color: 'text-purple-600' },
+  CANCELLED: { label: 'Cancelled', color: 'text-red-600' },
 }
 
 const PAGE_SIZE = 50

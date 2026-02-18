@@ -9,6 +9,15 @@ export const metadata: Metadata = {
   title: 'SWAPPER — TP Shift Marketplace',
   description: 'Coordinate shift swaps and covers with your AA travel professional team.',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'SWAPPER',
+  },
+  icons: {
+    icon: '/icons/icon.svg',
+    apple: '/icons/icon.svg',
+  },
 }
 
 export const viewport: Viewport = {

@@ -33,28 +33,29 @@ export function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname()
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 min-h-screen border-r bg-white">
+    <aside className="hidden lg:flex flex-col w-64 min-h-screen border-r bg-white" role="complementary">
       {/* Logo */}
       <div className="flex items-center h-16 px-6 border-b">
         <span className="text-xl font-bold text-gray-900">SWAPPER</span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav aria-label="Main navigation" className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 active
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               )}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
+              <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
               {item.label}
             </Link>
           )
@@ -90,9 +91,9 @@ export function Sidebar({ profile }: { profile: Profile }) {
         <form action={logout}>
           <button
             type="submit"
-            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
             Sign out
           </button>
         </form>

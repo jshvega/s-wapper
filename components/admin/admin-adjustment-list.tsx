@@ -12,9 +12,10 @@ const statusColors: Record<string, string> = {
   CONFIRMED: 'bg-green-100 text-green-700',
   EXPIRED: 'bg-red-100 text-red-700',
   REMOVED: 'bg-gray-100 text-gray-500',
+  CANCELLED: 'bg-red-100 text-red-700',
 }
 
-const ALL_STATUSES = ['DRAFT', 'OPEN', 'PENDING_CONFIRMATION', 'CONFIRMED', 'EXPIRED', 'REMOVED']
+const ALL_STATUSES = ['DRAFT', 'OPEN', 'PENDING_CONFIRMATION', 'CONFIRMED', 'EXPIRED', 'REMOVED', 'CANCELLED']
 
 export function AdminAdjustmentList({
   adjustments,
@@ -38,8 +39,8 @@ export function AdminAdjustmentList({
       const s = search.toLowerCase()
       const creatorName = (adj.creator as any)?.name?.toLowerCase() || ''
       const accepterName = (adj.accepter as any)?.name?.toLowerCase() || ''
-      const trackId = adj.aspect_track_id?.toLowerCase() || ''
-      if (!creatorName.includes(s) && !accepterName.includes(s) && !trackId.includes(s)) {
+      const tradeId = adj.aspect_trade_id?.toLowerCase() || ''
+      if (!creatorName.includes(s) && !accepterName.includes(s) && !tradeId.includes(s)) {
         return false
       }
     }
@@ -54,7 +55,7 @@ export function AdminAdjustmentList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by name or Track ID..."
+            placeholder="Search by name or Trade ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -115,7 +116,7 @@ export function AdminAdjustmentList({
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Creator</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Accepter</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Track ID</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Trade ID</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Created</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600"></th>
               </tr>
@@ -147,7 +148,7 @@ export function AdminAdjustmentList({
                     {(adj.accepter as any)?.name ?? '—'}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                    {adj.aspect_track_id ?? '—'}
+                    {adj.aspect_trade_id ?? '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {new Date(adj.created_at).toLocaleDateString()}

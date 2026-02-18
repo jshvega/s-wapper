@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/shared/sidebar'
 import { MobileNav } from '@/components/shared/mobile-nav'
+import { PwaInstallPrompt } from '@/components/shared/pwa-install'
 import type { Profile } from '@/lib/types'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {children}
       </main>
       <MobileNav />
+      <PwaInstallPrompt />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { validateAcceptance } from '@/lib/validators/rules'
 import { notifyListingAccepted, notifyAdjustmentConfirmed, notifyObligationCreated } from '@/lib/notifications/notify'
+import { unreconciledByCancel } from '@/lib/actions/ledger'
 import type { CreateListingInput } from '@/lib/types'
 
 export async function createListing(input: CreateListingInput) {
@@ -204,7 +205,7 @@ export async function acceptListing(id: string) {
   return { data }
 }
 
-export async function confirmAdjustment(id: string, trackId: string) {
+export async function confirmAdjustment(id: string, tradeId: string) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -231,13 +232,13 @@ export async function confirmAdjustment(id: string, trackId: string) {
     return { error: 'This adjustment has expired.' }
   }
 
-  if (!trackId.trim()) return { error: 'Track ID is required.' }
+  if (!tradeId.trim()) return { error: 'Trade ID is required.' }
 
   const { data, error } = await supabase
     .from('adjustments')
     .update({
       status: 'CONFIRMED',
-      aspect_track_id: trackId.trim(),
+      aspect_trade_id: tradeId.trim(),
       confirmed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -339,7 +340,7 @@ export async function confirmAdjustment(id: string, trackId: string) {
     adjustment_id: id,
     action: 'CONFIRMED',
     actor_id: user.id,
-    metadata: { track_id: trackId.trim() },
+    metadata: { trade_id: tradeId.trim() },
   })
 
   // Notify both parties of confirmation
@@ -358,7 +359,7 @@ export async function confirmAdjustment(id: string, trackId: string) {
       date: adj.date,
       shiftStart: adj.original_shift_start,
       shiftEnd: adj.original_shift_end,
-      trackId: trackId.trim(),
+      tradeId: tradeId.trim(),
       adjustmentId: id,
     }).catch((err) => console.error('[NOTIFY] confirmAdjustment error:', err))
 
@@ -385,4 +386,147 @@ export async function confirmAdjustment(id: string, trackId: string) {
   revalidatePath(`/listings/${id}`)
   revalidatePath('/ledger')
   return { data }
+}
+
+// ---- Cancel PENDING_CONFIRMATION adjustment ----
+// Only the CREATOR can cancel a pending adjustment
+
+export async function cancelPendingAdjustment(id: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Unauthorized' }
+
+  const { data: adj } = await supabase
+    .from('adjustments')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (!adj) return { error: 'Adjustment not found.' }
+  if (adj.status !== 'PENDING_CONFIRMATION') {
+    return { error: 'Only pending adjustments can be cancelled this way.' }
+  }
+
+  // Only the creator can cancel a pending adjustment
+  if (adj.creator_id !== user.id) {
+    return { error: 'Only the listing creator can cancel a pending adjustment.' }
+  }
+
+  const { error } = await supabase
+    .from('adjustments')
+    .update({
+      status: 'REMOVED',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+
+  if (error) {
+    console.error('[CANCEL] Failed to cancel pending adjustment:', error.message, error)
+    return { error: `Failed to cancel adjustment: ${error.message}` }
+  }
+
+  // Log — use REMOVED action since CANCELLED may not exist in log_action enum yet
+  const { error: logError } = await supabase.from('adjustment_logs').insert({
+    adjustment_id: id,
+    action: 'REMOVED',
+    actor_id: user.id,
+    metadata: { cancelled_from: 'PENDING_CONFIRMATION' },
+  })
+  if (logError) console.error('[CANCEL] Log insert error:', logError.message)
+
+  console.log(
+    `[CANCEL] Pending adjustment ${id} cancelled by ${user.id}. ` +
+    `Creator: ${adj.creator_id}, Accepter: ${adj.accepter_id}`
+  )
+
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/listings')
+  revalidatePath(`/listings/${id}`)
+  revalidatePath('/marketplace')
+  return { success: true }
+}
+
+// ---- Cancel CONFIRMED adjustment ----
+// Either party can cancel a confirmed adjustment
+
+export async function cancelConfirmedAdjustment(id: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Unauthorized' }
+
+  const { data: adj } = await supabase
+    .from('adjustments')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (!adj) return { error: 'Adjustment not found.' }
+  if (adj.status !== 'CONFIRMED') {
+    return { error: 'Only confirmed adjustments can be cancelled.' }
+  }
+
+  // Either party can cancel a confirmed adjustment
+  if (adj.creator_id !== user.id && adj.accepter_id !== user.id) {
+    return { error: 'Not authorized.' }
+  }
+
+  // Try CANCELLED status first, fall back to REMOVED if enum value doesn't exist
+  let updateError = null
+  const res1 = await supabase
+    .from('adjustments')
+    .update({ status: 'CANCELLED', updated_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (res1.error) {
+    console.error('[CANCEL] Update to CANCELLED failed (enum may not exist):', res1.error.message)
+    // Fall back to REMOVED
+    const res2 = await supabase
+      .from('adjustments')
+      .update({ status: 'REMOVED', updated_at: new Date().toISOString() })
+      .eq('id', id)
+    updateError = res2.error
+  }
+
+  if (updateError) {
+    console.error('[CANCEL] Failed to cancel confirmed adjustment:', updateError.message)
+    return { error: `Failed to cancel adjustment: ${updateError.message}` }
+  }
+
+  // Log — use REMOVED action as fallback-safe
+  const { error: logError } = await supabase.from('adjustment_logs').insert({
+    adjustment_id: id,
+    action: 'REMOVED',
+    actor_id: user.id,
+    metadata: { cancelled_from: 'CONFIRMED', trade_id: adj.aspect_trade_id },
+  })
+  if (logError) console.error('[CANCEL] Log insert error:', logError.message)
+
+  // Handle ledger reversal for COVER type
+  if (adj.type === 'COVER') {
+    try {
+      await unreconciledByCancel(id)
+    } catch (e) {
+      console.error('[CANCEL] Ledger reversal error:', e)
+    }
+  }
+
+  console.log(
+    `[CANCEL] Confirmed adjustment ${id} cancelled by ${user.id}. ` +
+    `Creator: ${adj.creator_id}, Accepter: ${adj.accepter_id}, Type: ${adj.type}`
+  )
+
+  revalidatePath('/dashboard')
+  revalidatePath('/calendar')
+  revalidatePath('/listings')
+  revalidatePath(`/listings/${id}`)
+  revalidatePath('/ledger')
+  revalidatePath('/history')
+  return { success: true }
 }

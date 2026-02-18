@@ -108,7 +108,8 @@ export function MarketplaceClient({
             <button
               key={t}
               onClick={() => setTypeFilter(t)}
-              className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
+              aria-pressed={typeFilter === t}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                 typeFilter === t
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
@@ -118,13 +119,14 @@ export function MarketplaceClient({
             </button>
           ))}
 
-          <div className="w-px bg-gray-200 mx-1" />
+          <div className="w-px bg-gray-200 mx-1" aria-hidden="true" />
 
           {(['ALL', 'REQUEST', 'OFFER'] as ListingTypeFilter[]).map((t) => (
             <button
               key={t}
               onClick={() => setListingTypeFilter(t)}
-              className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
+              aria-pressed={listingTypeFilter === t}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                 listingTypeFilter === t
                   ? 'bg-gray-800 text-white border-gray-800'
                   : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
@@ -137,21 +139,23 @@ export function MarketplaceClient({
 
         {/* Date range + eligible only */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Search className="h-4 w-4 text-gray-400 shrink-0" />
+          <Search className="h-4 w-4 text-gray-400 shrink-0" aria-hidden="true" />
           <Input
             type="date"
             min={todayStr}
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             className="h-8 text-sm max-w-[150px]"
+            aria-label="Filter from date"
           />
-          <span className="text-gray-400 text-sm">–</span>
+          <span className="text-gray-400 text-sm" aria-hidden="true">–</span>
           <Input
             type="date"
             min={dateFrom || todayStr}
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             className="h-8 text-sm max-w-[150px]"
+            aria-label="Filter to date"
           />
           {(dateFrom || dateTo) && (
             <Button

@@ -11,7 +11,7 @@ interface TemplateParams {
   adjustmentType: string // 'SWAP' | 'COVER'
   date: string // formatted display date, e.g. "Mon, Feb 17"
   shiftTime: string // e.g. "6:00 AM – 2:00 PM"
-  trackId?: string
+  tradeId?: string
   hoursLeft?: number
   minutesLeft?: number
 }
@@ -44,7 +44,7 @@ export function emailListingAccepted(p: TemplateParams) {
         <strong>${p.otherPartyName}</strong> accepted your ${p.adjustmentType.toLowerCase()} for <strong>${p.date}</strong> (${p.shiftTime}).
       </p>
       <p style="margin: 0 0 12px; line-height: 1.5;">
-        You have <strong>24 hours</strong> to enter the Aspect Track ID to confirm this adjustment.
+        You have <strong>24 hours</strong> to enter the Aspect Trade ID to confirm this adjustment.
       </p>
       <p style="margin: 0; line-height: 1.5; color: #d97706;">
         If neither party confirms within 24 hours, this adjustment will expire automatically.
@@ -66,7 +66,7 @@ export function emailConfirmationReminder(p: TemplateParams) {
         Your ${p.adjustmentType.toLowerCase()} with <strong>${p.otherPartyName}</strong> on <strong>${p.date}</strong> (${p.shiftTime}) expires in <strong style="color: #d97706;">${timeLeft}</strong>.
       </p>
       <p style="margin: 0; line-height: 1.5;">
-        Please enter the Aspect Track ID in SWAPPER to confirm before it expires.
+        Please enter the Aspect Trade ID in SWAPPER to confirm before it expires.
       </p>`
     ),
   }
@@ -74,14 +74,14 @@ export function emailConfirmationReminder(p: TemplateParams) {
 
 export function emailAdjustmentConfirmed(p: TemplateParams) {
   return {
-    subject: `${p.adjustmentType} confirmed — Track ID: ${p.trackId}`,
+    subject: `${p.adjustmentType} confirmed — Trade ID: ${p.tradeId}`,
     html: emailWrapper(
       `${p.adjustmentType} confirmed!`,
       `<p style="margin: 0 0 12px; line-height: 1.5;">
         Your ${p.adjustmentType.toLowerCase()} with <strong>${p.otherPartyName}</strong> on <strong>${p.date}</strong> (${p.shiftTime}) has been confirmed.
       </p>
       <p style="margin: 0 0 12px; line-height: 1.5;">
-        <strong>Aspect Track ID:</strong> ${p.trackId}
+        <strong>Aspect Trade ID:</strong> ${p.tradeId}
       </p>
       <p style="margin: 0; line-height: 1.5; color: #059669;">
         This adjustment is now official. Your calendar has been updated.
@@ -92,11 +92,11 @@ export function emailAdjustmentConfirmed(p: TemplateParams) {
 
 export function emailAdjustmentExpired(p: TemplateParams) {
   return {
-    subject: `${p.adjustmentType} expired — no Track ID entered`,
+    subject: `${p.adjustmentType} expired — no Trade ID entered`,
     html: emailWrapper(
       `${p.adjustmentType} has expired`,
       `<p style="margin: 0 0 12px; line-height: 1.5;">
-        The ${p.adjustmentType.toLowerCase()} with <strong>${p.otherPartyName}</strong> on <strong>${p.date}</strong> (${p.shiftTime}) has expired because no Track ID was entered within 24 hours.
+        The ${p.adjustmentType.toLowerCase()} with <strong>${p.otherPartyName}</strong> on <strong>${p.date}</strong> (${p.shiftTime}) has expired because no Trade ID was entered within 24 hours.
       </p>
       <p style="margin: 0; line-height: 1.5;">
         No changes have been made to your schedule. You can create a new listing if needed.
@@ -116,7 +116,7 @@ export function emailShiftReminder(p: TemplateParams) {
       <p style="margin: 0 0 12px; line-height: 1.5;">
         <strong>Shift:</strong> ${p.shiftTime}
       </p>
-      ${p.trackId ? `<p style="margin: 0; line-height: 1.5;"><strong>Track ID:</strong> ${p.trackId}</p>` : ''}`
+      ${p.tradeId ? `<p style="margin: 0; line-height: 1.5;"><strong>Trade ID:</strong> ${p.tradeId}</p>` : ''}`
     ),
   }
 }
@@ -149,7 +149,7 @@ export function emailObligationCreated(p: TemplateParams & { direction: 'owe' | 
 
 export function smsListingAccepted(p: TemplateParams) {
   return {
-    body: `SWAPPER: ${p.otherPartyName} accepted your ${p.adjustmentType.toLowerCase()} for ${p.date}. Enter Track ID within 24hrs to confirm.`,
+    body: `SWAPPER: ${p.otherPartyName} accepted your ${p.adjustmentType.toLowerCase()} for ${p.date}. Enter Trade ID within 24hrs to confirm.`,
   }
 }
 
@@ -158,13 +158,13 @@ export function smsConfirmationReminder(p: TemplateParams) {
     ? `${p.hoursLeft}h ${p.minutesLeft ?? 0}m`
     : '<4hrs'
   return {
-    body: `SWAPPER: ${timeLeft} left to confirm ${p.adjustmentType.toLowerCase()} with ${p.otherPartyName} on ${p.date}. Enter Track ID now.`,
+    body: `SWAPPER: ${timeLeft} left to confirm ${p.adjustmentType.toLowerCase()} with ${p.otherPartyName} on ${p.date}. Enter Trade ID now.`,
   }
 }
 
 export function smsAdjustmentConfirmed(p: TemplateParams) {
   return {
-    body: `SWAPPER: ${p.adjustmentType} with ${p.otherPartyName} on ${p.date} confirmed. Track ID: ${p.trackId}`,
+    body: `SWAPPER: ${p.adjustmentType} with ${p.otherPartyName} on ${p.date} confirmed. Trade ID: ${p.tradeId}`,
   }
 }
 

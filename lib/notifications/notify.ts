@@ -124,7 +124,7 @@ export async function notifyAdjustmentConfirmed(opts: {
   date: string
   shiftStart: string
   shiftEnd: string
-  trackId: string
+  tradeId: string
   adjustmentId: string
 }) {
   const shiftTime = formatShiftTime(opts.shiftStart, opts.shiftEnd)
@@ -139,7 +139,7 @@ export async function notifyAdjustmentConfirmed(opts: {
       adjustmentType: opts.adjustmentType,
       date,
       shiftTime,
-      trackId: opts.trackId,
+      tradeId: opts.tradeId,
     }
 
     const email = emailAdjustmentConfirmed(templateParams)
@@ -206,7 +206,7 @@ export async function notifyShiftReminder(opts: {
   date: string
   shiftStart: string
   shiftEnd: string
-  trackId?: string
+  tradeId?: string
   adjustmentId: string
 }) {
   const shiftTime = formatShiftTime(opts.shiftStart, opts.shiftEnd)
@@ -218,7 +218,7 @@ export async function notifyShiftReminder(opts: {
     adjustmentType: opts.adjustmentType,
     date,
     shiftTime,
-    trackId: opts.trackId,
+    tradeId: opts.tradeId,
   }
 
   const email = emailShiftReminder(templateParams)

@@ -224,7 +224,7 @@ export function AdminUserDetail({
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Partner</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Track ID</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Trade ID</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -254,7 +254,7 @@ export function AdminUserDetail({
                       : adj.creator?.name ?? '—'}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                    {adj.aspect_track_id ?? '—'}
+                    {adj.aspect_trade_id ?? '—'}
                   </td>
                 </tr>
               ))}

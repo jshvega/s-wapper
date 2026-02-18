@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { TrackIdInput } from '@/components/listings/track-id-input'
+import { TradeIdInput } from '@/components/listings/trade-id-input'
+import { CancelAdjustmentButton } from '@/components/listings/cancel-adjustment-button'
 import { formatTime } from '@/lib/utils/dates'
 import { ArrowLeft, Calendar, Clock, User, FileText } from 'lucide-react'
 import type { Adjustment } from '@/lib/types'
@@ -13,10 +14,11 @@ import type { Adjustment } from '@/lib/types'
 const STATUS_BADGE: Record<string, { variant: 'default' | 'secondary' | 'warning' | 'success' | 'destructive' | 'info'; label: string }> = {
   DRAFT:                { variant: 'secondary',   label: 'Draft' },
   OPEN:                 { variant: 'info',         label: 'Open in Marketplace' },
-  PENDING_CONFIRMATION: { variant: 'warning',      label: 'Pending Track ID' },
+  PENDING_CONFIRMATION: { variant: 'warning',      label: 'Pending Trade ID' },
   CONFIRMED:            { variant: 'success',      label: 'Confirmed' },
   EXPIRED:              { variant: 'destructive',  label: 'Expired' },
   REMOVED:              { variant: 'secondary',    label: 'Removed' },
+  CANCELLED:            { variant: 'destructive',  label: 'Cancelled' },
 }
 
 export default async function ListingDetailPage({ params }: { params: { id: string } }) {
@@ -44,7 +46,11 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   }
 
   const statusInfo = STATUS_BADGE[adj.status] ?? { variant: 'secondary' as const, label: adj.status }
-  const canEnterTrackId = adj.status === 'PENDING_CONFIRMATION' && (isCreator || isAccepter)
+  const canEnterTradeId = adj.status === 'PENDING_CONFIRMATION' && (isCreator || isAccepter)
+  // PENDING: only creator can cancel. CONFIRMED: either party can cancel.
+  const canCancel =
+    (adj.status === 'PENDING_CONFIRMATION' && isCreator) ||
+    (adj.status === 'CONFIRMED' && (isCreator || isAccepter))
 
   const dateDisplay = new Date(adj.date + 'T00:00:00').toLocaleDateString('en-US', {
     weekday: 'long',
@@ -148,12 +154,12 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
           </CardContent>
         </Card>
 
-        {adj.status === 'CONFIRMED' && adj.aspect_track_id && (
+        {adj.status === 'CONFIRMED' && adj.aspect_trade_id && (
           <Card className="border-green-200 bg-green-50">
             <CardContent className="pt-4 pb-4">
               <p className="text-sm font-semibold text-green-800">Confirmed in Aspect</p>
               <p className="text-sm text-green-700 mt-1">
-                Track ID: <span className="font-mono font-bold">{adj.aspect_track_id}</span>
+                Trade ID: <span className="font-mono font-bold">{adj.aspect_trade_id}</span>
               </p>
               {adj.confirmed_at && (
                 <p className="text-xs text-green-600 mt-1">
@@ -166,8 +172,28 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
           </Card>
         )}
 
-        {canEnterTrackId && (
-          <TrackIdInput adjustmentId={adj.id} expiresAt={adj.expires_at} />
+        {adj.status === 'CANCELLED' && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-4 pb-4">
+              <p className="text-sm font-semibold text-red-800">This adjustment was cancelled</p>
+              {adj.aspect_trade_id && (
+                <p className="text-sm text-red-700 mt-1 line-through">
+                  Trade ID: {adj.aspect_trade_id}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {canEnterTradeId && (
+          <TradeIdInput adjustmentId={adj.id} expiresAt={adj.expires_at} />
+        )}
+
+        {canCancel && (
+          <CancelAdjustmentButton
+            adjustmentId={adj.id}
+            status={adj.status as 'PENDING_CONFIRMATION' | 'CONFIRMED'}
+          />
         )}
 
         <p className="text-xs text-gray-400 text-right">Listed {createdDisplay}</p>
