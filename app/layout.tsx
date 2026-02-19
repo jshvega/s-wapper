@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'S-WAPPER — TP Shift Marketplace',
+  title: 'S-WAPPER',
   description: 'Coordinate shift swaps and covers with your AA travel professional team.',
   manifest: '/manifest.json',
   appleWebApp: {
@@ -15,8 +15,14 @@ export const metadata: Metadata = {
     title: 'S-WAPPER',
   },
   icons: {
-    icon: '/icons/icon.svg',
-    apple: '/icons/icon.svg',
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico', sizes: '16x16 32x32' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
 }
 

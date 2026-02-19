@@ -13,7 +13,13 @@
       "Skill(keybindings-help:*)",
       "Bash(npm install:*)",
       "Bash(find components -name \"*.tsx\" -exec sh -c 'head -1 \"\"$1\"\" | grep -q \"\"use client\"\" || echo \"\"$1\"\"' _ {} ;)",
-      "Bash(find app -name \"*.tsx\" -exec sh -c 'head -1 \"\"$1\"\" | grep -q \"\"use client\"\" || echo \"\"$1\"\"' _ {} ;)"
+      "Bash(find app -name \"*.tsx\" -exec sh -c 'head -1 \"\"$1\"\" | grep -q \"\"use client\"\" || echo \"\"$1\"\"' _ {} ;)",
+      "Bash(magick:*)",
+      "Bash(convert:*)",
+      "Bash(python:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(ls:*)",
+      "Read(//c/Users/mango/Downloads/swapper/**)"
     ]
   }
 }
