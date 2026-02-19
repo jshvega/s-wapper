@@ -45,14 +45,14 @@ export default async function LedgerPage() {
         .select(`*, ${profileJoins}`)
         .or(`creditor_id.eq.${user.id},debtor_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
-      ledger = (profilesOnly ?? []) as LedgerEntry[]
+      ledger = (profilesOnly ?? []) as unknown as LedgerEntry[]
     } else {
       console.log('[LEDGER_PAGE] Basic join returned', basicEntries?.length, 'entries')
-      ledger = (basicEntries ?? []) as LedgerEntry[]
+      ledger = (basicEntries ?? []) as unknown as unknown as LedgerEntry[]
     }
   } else {
     console.log('[LEDGER_PAGE] Full query returned', entries?.length, 'entries')
-    ledger = (entries ?? []) as LedgerEntry[]
+    ledger = (entries ?? []) as unknown as LedgerEntry[]
   }
 
   // Filter out entries whose adjustment was cancelled/removed — those debts no longer exist

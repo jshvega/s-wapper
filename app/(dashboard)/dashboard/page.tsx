@@ -76,8 +76,9 @@ export default async function DashboardPage() {
   const openCount = openCountRes.count ?? 0
   // Only count ledger entries whose adjustment is still CONFIRMED — matches the
   // ledger page's activeLedger filter so both pages always agree.
-  const isActiveLedgerEntry = (e: { adjustment?: { status?: string } | null }) => {
-    const s = (e.adjustment as any)?.status
+  const isActiveLedgerEntry = (e: any) => {
+    const adj = e.adjustment
+    const s = Array.isArray(adj) ? adj[0]?.status : adj?.status
     return !s || s === 'CONFIRMED'
   }
   const ledgerOwedCount = (ledgerOwedRes.data ?? []).filter(isActiveLedgerEntry).length

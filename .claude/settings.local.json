@@ -11,7 +11,9 @@
       "Bash(dir:*)",
       "Skill(keybindings-help)",
       "Skill(keybindings-help:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(find components -name \"*.tsx\" -exec sh -c 'head -1 \"\"$1\"\" | grep -q \"\"use client\"\" || echo \"\"$1\"\"' _ {} ;)",
+      "Bash(find app -name \"*.tsx\" -exec sh -c 'head -1 \"\"$1\"\" | grep -q \"\"use client\"\" || echo \"\"$1\"\"' _ {} ;)"
     ]
   }
 }
