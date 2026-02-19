@@ -366,6 +366,80 @@ export async function exportLogsCsv(filters: {
   return { csv: [header, ...rows].join('\n'), error: null }
 }
 
+// ---- Bid Period actions ----
+
+export async function getBidPeriods() {
+  const { supabase } = await requireAdmin()
+  const { data, error } = await supabase
+    .from('bid_periods')
+    .select('*')
+    .order('start_date', { ascending: false })
+  if (error) return { data: null, error: 'Failed to fetch bid periods' }
+  return { data, error: null }
+}
+
+export async function createBidPeriod(name: string, startDate: string, endDate: string) {
+  const { supabase } = await requireAdmin()
+
+  if (!name.trim()) return { error: 'Name is required' }
+  if (!startDate || !endDate) return { error: 'Start and end dates are required' }
+  if (endDate < startDate) return { error: 'End date must be on or after start date' }
+
+  const { error } = await supabase
+    .from('bid_periods')
+    .insert({ name: name.trim(), start_date: startDate, end_date: endDate, is_active: false })
+
+  if (error) return { error: 'Failed to create bid period' }
+
+  revalidatePath('/admin/bid-periods')
+  return { success: true }
+}
+
+export async function setActiveBidPeriod(id: string) {
+  const { supabase } = await requireAdmin()
+
+  // Deactivate all, then activate the chosen one (two-step to avoid race)
+  await supabase.from('bid_periods').update({ is_active: false }).neq('id', id)
+  const { error } = await supabase.from('bid_periods').update({ is_active: true }).eq('id', id)
+
+  if (error) return { error: 'Failed to set active bid period' }
+
+  revalidatePath('/admin/bid-periods')
+  revalidatePath('/calendar')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function deactivateBidPeriod(id: string) {
+  const { supabase } = await requireAdmin()
+  const { error } = await supabase.from('bid_periods').update({ is_active: false }).eq('id', id)
+  if (error) return { error: 'Failed to deactivate bid period' }
+  revalidatePath('/admin/bid-periods')
+  revalidatePath('/calendar')
+  return { success: true }
+}
+
+export async function deleteBidPeriod(id: string) {
+  const { supabase } = await requireAdmin()
+  const { error } = await supabase.from('bid_periods').delete().eq('id', id).eq('is_active', false)
+  if (error) return { error: 'Cannot delete bid period (may be active or not found)' }
+  revalidatePath('/admin/bid-periods')
+  return { success: true }
+}
+
+// ---- Public: get active bid period (no admin check — used by calendar/footer) ----
+
+export async function getActiveBidPeriod() {
+  const { createClient } = await import('@/lib/supabase/server')
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('bid_periods')
+    .select('*')
+    .eq('is_active', true)
+    .single()
+  return data ?? null
+}
+
 // ---- Dashboard stats ----
 
 export async function getAdminDashboardStats() {

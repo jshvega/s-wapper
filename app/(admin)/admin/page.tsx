@@ -1,6 +1,6 @@
 import { getAdminDashboardStats } from '@/lib/actions/admin'
 import { ExpireNowButton } from '@/components/shared/expire-now-button'
-import { Users, FileText, CheckCircle, XCircle, Clock, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { Users, FileText, CheckCircle, XCircle, Clock, TrendingUp, TrendingDown, Activity, CalendarDays, Rocket } from 'lucide-react'
 
 export default async function AdminDashboard() {
   const stats = await getAdminDashboardStats()
@@ -115,6 +115,24 @@ export default async function AdminDashboard() {
               <div>
                 <p className="font-semibold text-gray-900">Activity Logs</p>
                 <p className="text-sm text-gray-500">Full audit trail with export</p>
+              </div>
+            </div>
+          </a>
+          <a href="/admin/bid-periods" className="bg-white rounded-lg border p-4 hover:border-blue-300 transition-colors">
+            <div className="flex items-center gap-3">
+              <CalendarDays className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="font-semibold text-gray-900">Bid Periods</p>
+                <p className="text-sm text-gray-500">Manage active schedule periods</p>
+              </div>
+            </div>
+          </a>
+          <a href="/admin/launch-checklist" className="bg-white rounded-lg border p-4 hover:border-indigo-300 transition-colors">
+            <div className="flex items-center gap-3">
+              <Rocket className="h-5 w-5 text-indigo-600" />
+              <div>
+                <p className="font-semibold text-gray-900">Launch Checklist</p>
+                <p className="text-sm text-gray-500">Pre-launch readiness checks</p>
               </div>
             </div>
           </a>

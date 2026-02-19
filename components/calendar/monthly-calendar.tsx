@@ -24,6 +24,7 @@ interface MonthlyCalendarProps {
   initialMonth: number  // 0-indexed
   today: Date
   currentUserId: string
+  bidPeriod?: { name: string; start_date: string; end_date: string } | null
 }
 
 function getMondayOfWeek(date: Date): Date {
@@ -53,12 +54,25 @@ function formatWeekRange(weekStart: Date): string {
   return `${startStr} – ${endStr}`
 }
 
+// Parse a YYYY-MM-DD date string at noon to avoid timezone shifts
+function parseBidDate(dateStr: string): Date {
+  return new Date(dateStr + 'T12:00:00')
+}
+
+function isInBidPeriod(date: Date, bidStart: Date | null, bidEnd: Date | null): boolean {
+  if (!bidStart || !bidEnd) return true
+  const d = new Date(date)
+  d.setHours(12, 0, 0, 0)
+  return d >= bidStart && d <= bidEnd
+}
+
 export function MonthlyCalendar({
   effectiveShifts,
   initialYear,
   initialMonth,
   today,
   currentUserId,
+  bidPeriod,
 }: MonthlyCalendarProps) {
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(initialMonth)
@@ -73,12 +87,36 @@ export function MonthlyCalendar({
     shiftMap.set(s.date, s)
   }
 
+  // Bid period bounds
+  const bidStart = bidPeriod ? parseBidDate(bidPeriod.start_date) : null
+  const bidEnd = bidPeriod ? parseBidDate(bidPeriod.end_date) : null
+
+  const canGoPrevMonth = !bidStart ||
+    year > bidStart.getFullYear() ||
+    (year === bidStart.getFullYear() && month > bidStart.getMonth())
+
+  const canGoNextMonth = !bidEnd ||
+    year < bidEnd.getFullYear() ||
+    (year === bidEnd.getFullYear() && month < bidEnd.getMonth())
+
+  // Check if the entire displayed month is outside the bid period
+  const firstDayOfMonth = new Date(year, month, 1)
+  firstDayOfMonth.setHours(12, 0, 0, 0)
+  const lastDayOfMonth = new Date(year, month + 1, 0)
+  lastDayOfMonth.setHours(12, 0, 0, 0)
+  const isMonthCompletelyOutsideBid = !!(
+    bidStart && bidEnd &&
+    (lastDayOfMonth < bidStart || firstDayOfMonth > bidEnd)
+  )
+
   // Desktop month navigation
   function prevMonth() {
+    if (!canGoPrevMonth) return
     if (month === 0) { setYear((y) => y - 1); setMonth(11) }
     else { setMonth((m) => m - 1) }
   }
   function nextMonth() {
+    if (!canGoNextMonth) return
     if (month === 11) { setYear((y) => y + 1); setMonth(0) }
     else { setMonth((m) => m + 1) }
   }
@@ -110,7 +148,7 @@ export function MonthlyCalendar({
       <div className="md:hidden bg-white rounded-xl border overflow-hidden">
         {/* Mobile header */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
-          <Button variant="ghost" size="icon" onClick={prevWeek} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={prevWeek} className="h-8 w-8" disabled={!canGoPrevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2">
@@ -121,7 +159,7 @@ export function MonthlyCalendar({
               Today
             </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={nextWeek} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={nextWeek} className="h-8 w-8" disabled={!canGoNextMonth}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -132,6 +170,7 @@ export function MonthlyCalendar({
             const key = getDateKey(date)
             const shift = shiftMap.get(key)
             const isToday = isSameDay(date, today)
+            const outsideBid = !isInBidPeriod(date, bidStart, bidEnd)
             const effective = shift?.effectiveShift
             const isDayOff = shift?.isDayOff && !effective
             const isCovered = effective?.type === 'COVERED'
@@ -144,14 +183,17 @@ export function MonthlyCalendar({
               <button
                 key={key}
                 onClick={() => setSelectedDate(date)}
+                disabled={outsideBid}
                 className={cn(
-                  'flex items-center gap-3 w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 active:bg-gray-100',
-                  isToday && 'bg-blue-50',
-                  !isToday && isDayOff && 'bg-blue-50/50',
-                  !isToday && isCovered && 'bg-teal-50/50',
-                  !isToday && isCovering && 'bg-purple-50/50',
-                  !isToday && isSwapped && 'bg-indigo-50/50',
-                  !isToday && pendingAdj.length > 0 && 'bg-amber-50/50',
+                  'flex items-center gap-3 w-full px-4 py-3 text-left transition-colors',
+                  outsideBid && 'opacity-30 cursor-not-allowed bg-gray-50',
+                  !outsideBid && 'hover:bg-gray-50 active:bg-gray-100',
+                  !outsideBid && isToday && 'bg-blue-50',
+                  !outsideBid && !isToday && isDayOff && 'bg-blue-50/50',
+                  !outsideBid && !isToday && isCovered && 'bg-teal-50/50',
+                  !outsideBid && !isToday && isCovering && 'bg-purple-50/50',
+                  !outsideBid && !isToday && isSwapped && 'bg-indigo-50/50',
+                  !outsideBid && !isToday && pendingAdj.length > 0 && 'bg-amber-50/50',
                 )}
               >
                 {/* Day + date circle */}
@@ -171,7 +213,7 @@ export function MonthlyCalendar({
 
                 {/* Shift content */}
                 <div className="flex-1 min-w-0">
-                  {isDayOff ? (
+                  {outsideBid ? null : isDayOff ? (
                     <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
                       Day Off
                     </span>
@@ -196,8 +238,8 @@ export function MonthlyCalendar({
                     <span className="text-xs text-gray-300">No schedule</span>
                   )}
 
-                  {/* Status badges */}
-                  {(pendingAdj.length > 0 || confirmedAdj.length > 0) && (
+                  {/* Status badges — only inside bid period */}
+                  {!outsideBid && (pendingAdj.length > 0 || confirmedAdj.length > 0) && (
                     <div className="flex gap-1 mt-1">
                       {pendingAdj.length > 0 && (
                         <Badge variant="warning" className="text-[10px] h-4 px-1.5">⏱ Pending</Badge>
@@ -244,7 +286,7 @@ export function MonthlyCalendar({
       <div className="hidden md:block bg-white rounded-xl border overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
-          <Button variant="ghost" size="icon" onClick={prevMonth} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={prevMonth} className="h-8 w-8" disabled={!canGoPrevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-3">
@@ -255,7 +297,7 @@ export function MonthlyCalendar({
               Today
             </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={nextMonth} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={nextMonth} className="h-8 w-8" disabled={!canGoNextMonth}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -274,23 +316,34 @@ export function MonthlyCalendar({
 
         {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-0.5 p-1.5 bg-gray-100">
-          {gridDates.map((date) => {
-            const key = getDateKey(date)
-            const shift = shiftMap.get(key)
-            const inMonth = checkCurrentMonth(date, year, month)
-            const isToday = isSameDay(date, today)
+          {isMonthCompletelyOutsideBid ? (
+            <div className="col-span-7 flex flex-col items-center justify-center py-16 text-center bg-white rounded-lg">
+              <p className="text-gray-400 text-sm font-medium">This month is outside the current bid period</p>
+              {bidPeriod && (
+                <p className="text-gray-300 text-xs mt-1">{bidPeriod.name}</p>
+              )}
+            </div>
+          ) : (
+            gridDates.map((date) => {
+              const key = getDateKey(date)
+              const shift = shiftMap.get(key)
+              const inMonth = checkCurrentMonth(date, year, month)
+              const isToday = isSameDay(date, today)
+              const outsideBid = !isInBidPeriod(date, bidStart, bidEnd)
 
-            return (
-              <DayCell
-                key={key}
-                date={date}
-                shift={shift}
-                isToday={isToday}
-                isCurrentMonth={inMonth}
-                onClick={() => setSelectedDate(date)}
-              />
-            )
-          })}
+              return (
+                <DayCell
+                  key={key}
+                  date={date}
+                  shift={shift}
+                  isToday={isToday}
+                  isCurrentMonth={inMonth}
+                  isOutsideBidPeriod={outsideBid}
+                  onClick={() => setSelectedDate(date)}
+                />
+              )
+            })
+          )}
         </div>
 
         {/* Legend */}

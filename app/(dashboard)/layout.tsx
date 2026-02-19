@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/shared/sidebar'
 import { MobileNav } from '@/components/shared/mobile-nav'
 import { PwaInstallPrompt } from '@/components/shared/pwa-install'
-import type { Profile } from '@/lib/types'
+import type { Profile, BidPeriod } from '@/lib/types'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -43,9 +43,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!schedule || schedule.length === 0) redirect('/onboarding')
 
+  const { data: activeBidPeriod } = await supabase
+    .from('bid_periods')
+    .select('id, name, start_date, end_date, is_active, created_at')
+    .eq('is_active', true)
+    .single()
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar profile={profile as Profile} />
+      <Sidebar profile={profile as Profile} activeBidPeriod={activeBidPeriod as BidPeriod | null} />
       <main className="flex-1 flex flex-col min-h-screen lg:ml-0 pb-16 lg:pb-0">
         {children}
       </main>

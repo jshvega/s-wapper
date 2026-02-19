@@ -1,8 +1,13 @@
+import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import type { NotificationPreferences, NotificationEventKey } from '@/lib/types'
 
 /**
- * Notification sender service.
+ * Notification sender service — SERVER ONLY.
+ *
+ * Uses the service_role key to bypass RLS so notifications can be sent
+ * for any user (e.g., by cron jobs). This file must never be imported
+ * in client-side code.
  *
  * For the demo phase, all sends are console.log only.
  * TODO: Replace with actual Resend (email) and Twilio (SMS) calls in production.
@@ -24,9 +29,15 @@ interface SendNotificationParams {
 }
 
 function getServiceSupabase() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key) {
+    // In dev/demo without a service role key, fall back to anon key.
+    // Notifications will still be logged; inserts may be rejected by RLS for cross-user writes.
+    console.warn('[Notifications] SUPABASE_SERVICE_ROLE_KEY not set — using anon key (dev/demo mode)')
+  }
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    key ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   )
 }
 
@@ -54,7 +65,7 @@ export async function sendNotification(params: SendNotificationParams) {
     // TODO: Replace with Resend API call:
     // const resend = new Resend(process.env.RESEND_API_KEY)
     // await resend.emails.send({
-    //   from: 'SWAPPER <noreply@swapper.app>',
+    //   from: 'S-WAPPER <noreply@s-wapper.app>',
     //   to: params.email.to,
     //   subject: params.email.subject,
     //   html: params.email.html,

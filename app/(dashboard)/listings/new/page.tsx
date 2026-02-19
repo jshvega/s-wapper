@@ -11,11 +11,23 @@ export default async function NewListingPage() {
 
   if (!user) redirect('/login')
 
-  const { data: schedules } = await supabase
-    .from('schedules')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('effective_from', { ascending: false })
+  const [schedulesRes, bidPeriodRes] = await Promise.all([
+    supabase
+      .from('schedules')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('effective_from', { ascending: false }),
+    supabase
+      .from('bid_periods')
+      .select('name, start_date, end_date')
+      .eq('is_active', true)
+      .maybeSingle(),
+  ])
 
-  return <ListingForm schedule={(schedules ?? []) as Schedule[]} />
+  return (
+    <ListingForm
+      schedule={(schedulesRes.data ?? []) as Schedule[]}
+      bidPeriod={bidPeriodRes.data ?? null}
+    />
+  )
 }

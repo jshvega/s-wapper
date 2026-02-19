@@ -146,6 +146,15 @@ export interface Notification {
   created_at: string
 }
 
+export interface BidPeriod {
+  id: string
+  name: string
+  start_date: string  // "YYYY-MM-DD"
+  end_date: string    // "YYYY-MM-DD"
+  is_active: boolean
+  created_at: string
+}
+
 export interface PendingDebt {
   id: string
   creator_id: string

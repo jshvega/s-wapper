@@ -25,12 +25,12 @@ function emailWrapper(title: string, body: string): string {
 <html><head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1f2937;">
   <div style="border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 20px;">
-    <strong style="font-size: 18px;">SWAPPER</strong>
+    <strong style="font-size: 18px;">S-WAPPER</strong>
   </div>
   <h2 style="font-size: 16px; margin: 0 0 16px;">${title}</h2>
   ${body}
   <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
-    This is an automated message from SWAPPER. Please process all official adjustments through Aspect.
+    This is an automated message from S-WAPPER. Please process all official adjustments through Aspect.
   </div>
 </body></html>`
 }
@@ -66,7 +66,7 @@ export function emailConfirmationReminder(p: TemplateParams) {
         Your ${p.adjustmentType.toLowerCase()} with <strong>${p.otherPartyName}</strong> on <strong>${p.date}</strong> (${p.shiftTime}) expires in <strong style="color: #d97706;">${timeLeft}</strong>.
       </p>
       <p style="margin: 0; line-height: 1.5;">
-        Please enter the Aspect Trade ID in SWAPPER to confirm before it expires.
+        Please enter the Aspect Trade ID in S-WAPPER to confirm before it expires.
       </p>`
     ),
   }
@@ -137,7 +137,7 @@ export function emailObligationCreated(p: TemplateParams & { direction: 'owe' | 
       </p>
       <p style="margin: 0; line-height: 1.5;">
         This is from the confirmed cover on <strong>${p.date}</strong> (${p.shiftTime}).
-        View your ledger in SWAPPER to track obligations.
+        View your ledger in S-WAPPER to track obligations.
       </p>`
     ),
   }
@@ -149,7 +149,7 @@ export function emailObligationCreated(p: TemplateParams & { direction: 'owe' | 
 
 export function smsListingAccepted(p: TemplateParams) {
   return {
-    body: `SWAPPER: ${p.otherPartyName} accepted your ${p.adjustmentType.toLowerCase()} for ${p.date}. Enter Trade ID within 24hrs to confirm.`,
+    body: `S-WAPPER: ${p.otherPartyName} accepted your ${p.adjustmentType.toLowerCase()} for ${p.date}. Enter Trade ID within 24hrs to confirm.`,
   }
 }
 
@@ -158,24 +158,24 @@ export function smsConfirmationReminder(p: TemplateParams) {
     ? `${p.hoursLeft}h ${p.minutesLeft ?? 0}m`
     : '<4hrs'
   return {
-    body: `SWAPPER: ${timeLeft} left to confirm ${p.adjustmentType.toLowerCase()} with ${p.otherPartyName} on ${p.date}. Enter Trade ID now.`,
+    body: `S-WAPPER: ${timeLeft} left to confirm ${p.adjustmentType.toLowerCase()} with ${p.otherPartyName} on ${p.date}. Enter Trade ID now.`,
   }
 }
 
 export function smsAdjustmentConfirmed(p: TemplateParams) {
   return {
-    body: `SWAPPER: ${p.adjustmentType} with ${p.otherPartyName} on ${p.date} confirmed. Trade ID: ${p.tradeId}`,
+    body: `S-WAPPER: ${p.adjustmentType} with ${p.otherPartyName} on ${p.date} confirmed. Trade ID: ${p.tradeId}`,
   }
 }
 
 export function smsAdjustmentExpired(p: TemplateParams) {
   return {
-    body: `SWAPPER: ${p.adjustmentType} with ${p.otherPartyName} on ${p.date} has expired. No changes to your schedule.`,
+    body: `S-WAPPER: ${p.adjustmentType} with ${p.otherPartyName} on ${p.date} has expired. No changes to your schedule.`,
   }
 }
 
 export function smsShiftReminder(p: TemplateParams) {
   return {
-    body: `SWAPPER: Reminder — modified shift tomorrow ${p.date} (${p.shiftTime}) with ${p.otherPartyName}.`,
+    body: `S-WAPPER: Reminder — modified shift tomorrow ${p.date} (${p.shiftTime}) with ${p.otherPartyName}.`,
   }
 }

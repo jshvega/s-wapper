@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ShoppingBag,
   Calendar,
+  CalendarDays,
   List,
   Users,
   BookOpen,
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/lib/actions/auth'
-import type { Profile } from '@/lib/types'
+import type { Profile, BidPeriod } from '@/lib/types'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -29,14 +30,14 @@ const navItems = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
-export function Sidebar({ profile }: { profile: Profile }) {
+export function Sidebar({ profile, activeBidPeriod }: { profile: Profile; activeBidPeriod?: BidPeriod | null }) {
   const pathname = usePathname()
 
   return (
     <aside className="hidden lg:flex flex-col w-64 min-h-screen border-r bg-white" role="complementary">
       {/* Logo */}
       <div className="flex items-center h-16 px-6 border-b">
-        <span className="text-xl font-bold text-gray-900">SWAPPER</span>
+        <span className="text-xl font-bold text-gray-900">S-WAPPER</span>
       </div>
 
       {/* Navigation */}
@@ -76,6 +77,23 @@ export function Sidebar({ profile }: { profile: Profile }) {
           </Link>
         )}
       </nav>
+
+      {/* Active bid period chip */}
+      {activeBidPeriod && (
+        <div className="px-4 pb-2">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-blue-50 border border-blue-100">
+            <CalendarDays className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-blue-700 truncate">{activeBidPeriod.name}</p>
+              <p className="text-[10px] text-blue-500">
+                {new Date(activeBidPeriod.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {' – '}
+                {new Date(activeBidPeriod.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User footer */}
       <div className="p-4 border-t">

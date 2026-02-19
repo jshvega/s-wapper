@@ -45,7 +45,7 @@ export function PwaInstallPrompt() {
       <div className="bg-white rounded-xl shadow-lg border p-4 flex items-start gap-3">
         <Download className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">Install SWAPPER</p>
+          <p className="text-sm font-semibold text-gray-900">Install S-WAPPER</p>
           <p className="text-xs text-gray-500 mt-0.5">Add to your home screen for quick access.</p>
           <Button size="sm" className="mt-2 h-8 text-xs" onClick={handleInstall}>
             Install

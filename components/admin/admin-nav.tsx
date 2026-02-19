@@ -9,6 +9,8 @@ const navItems = [
   { href: '/admin/users', label: 'Users', exact: false },
   { href: '/admin/adjustments', label: 'Adjustments', exact: false },
   { href: '/admin/logs', label: 'Activity Logs', exact: false },
+  { href: '/admin/bid-periods', label: 'Bid Periods', exact: false },
+  { href: '/admin/launch-checklist', label: '✓ Launch', exact: false },
 ]
 
 export function AdminNav() {

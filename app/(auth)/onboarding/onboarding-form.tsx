@@ -76,7 +76,7 @@ export function OnboardingForm({ userId }: { userId: string }) {
     if (result?.error) {
       toast({ title: 'Setup failed', description: result.error, variant: 'destructive' })
     } else {
-      toast({ title: 'Schedule saved!', description: 'Welcome to SWAPPER.' })
+      toast({ title: 'Schedule saved!', description: 'Welcome to S-WAPPER.' })
       router.push('/dashboard')
     }
   }

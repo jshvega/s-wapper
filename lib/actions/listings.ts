@@ -15,6 +15,23 @@ export async function createListing(input: CreateListingInput) {
 
   if (!user) return { error: 'Unauthorized' }
 
+  // Validate date is within active bid period (if one exists)
+  const { data: activeBidPeriod } = await supabase
+    .from('bid_periods')
+    .select('name, start_date, end_date')
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (activeBidPeriod) {
+    if (input.date < activeBidPeriod.start_date || input.date > activeBidPeriod.end_date) {
+      const fmt = (d: string) =>
+        new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      return {
+        error: `This date is outside the current bid period (${fmt(activeBidPeriod.start_date)} – ${fmt(activeBidPeriod.end_date)}).`,
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from('adjustments')
     .insert({

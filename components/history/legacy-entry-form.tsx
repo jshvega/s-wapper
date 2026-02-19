@@ -103,7 +103,7 @@ export function LegacyEntryForm({ allUsers, currentUserId }: LegacyEntryFormProp
           Add Past Adjustment
         </CardTitle>
         <p className="text-xs text-gray-500">
-          Record historical swaps/covers that happened before SWAPPER. These go directly to Confirmed status.
+          Record historical swaps/covers that happened before S-WAPPER. These go directly to Confirmed status.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

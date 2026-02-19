@@ -6,13 +6,13 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'SWAPPER — TP Shift Marketplace',
+  title: 'S-WAPPER — TP Shift Marketplace',
   description: 'Coordinate shift swaps and covers with your AA travel professional team.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SWAPPER',
+    title: 'S-WAPPER',
   },
   icons: {
     icon: '/icons/icon.svg',

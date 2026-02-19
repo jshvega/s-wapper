@@ -7,7 +7,7 @@ export default function OfflinePage() {
         <WifiOff className="h-12 w-12 text-gray-300 mx-auto" />
         <h1 className="text-xl font-bold text-gray-900">You&apos;re Offline</h1>
         <p className="text-sm text-gray-500 max-w-xs mx-auto">
-          SWAPPER needs an internet connection. Please check your connection and try again.
+          S-WAPPER needs an internet connection. Please check your connection and try again.
         </p>
         <button
           onClick={() => window.location.reload()}

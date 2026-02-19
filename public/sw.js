@@ -1,4 +1,4 @@
-const CACHE_NAME = 'swapper-v1'
+const CACHE_NAME = 's-wapper-v1'
 const OFFLINE_URL = '/offline'
 
 // Shell files to cache for offline

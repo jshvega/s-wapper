@@ -17,6 +17,7 @@ import Link from 'next/link'
 
 interface ListingFormProps {
   schedule: Schedule[]
+  bidPeriod?: { name: string; start_date: string; end_date: string } | null
 }
 
 function getScheduleForDate(schedule: Schedule[], date: string): Schedule | null {
@@ -30,7 +31,7 @@ function getScheduleForDate(schedule: Schedule[], date: string): Schedule | null
   return matches[0] ?? null
 }
 
-export function ListingForm({ schedule }: ListingFormProps) {
+export function ListingForm({ schedule, bidPeriod }: ListingFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
@@ -52,6 +53,16 @@ export function ListingForm({ schedule }: ListingFormProps) {
   const handleSave = (andPublish: boolean) => {
     if (!date) {
       toast({ title: 'Date required', description: 'Please select a date.', variant: 'destructive' })
+      return
+    }
+    if (bidPeriod && (date < bidPeriod.start_date || date > bidPeriod.end_date)) {
+      const fmt = (d: string) =>
+        new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      toast({
+        title: 'Date outside bid period',
+        description: `This date is outside the current bid period (${fmt(bidPeriod.start_date)} – ${fmt(bidPeriod.end_date)}).`,
+        variant: 'destructive',
+      })
       return
     }
     if (isDayOff) {
@@ -110,6 +121,8 @@ export function ListingForm({ schedule }: ListingFormProps) {
 
   // Today's date in YYYY-MM-DD for min date
   const todayStr = new Date().toISOString().split('T')[0]
+  const minDate = bidPeriod ? (bidPeriod.start_date > todayStr ? bidPeriod.start_date : todayStr) : todayStr
+  const maxDate = bidPeriod?.end_date
 
   return (
     <div className="p-4 lg:p-8 max-w-2xl">
@@ -193,10 +206,19 @@ export function ListingForm({ schedule }: ListingFormProps) {
             <CardTitle className="text-sm font-medium text-gray-700">Date</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {bidPeriod && (
+              <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1.5">
+                Active bid period: <span className="font-medium">{bidPeriod.name}</span>{' '}
+                ({new Date(bidPeriod.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {' – '}
+                {new Date(bidPeriod.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
+              </p>
+            )}
             <div>
               <Input
                 type="date"
-                min={todayStr}
+                min={minDate}
+                max={maxDate}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="max-w-xs"
