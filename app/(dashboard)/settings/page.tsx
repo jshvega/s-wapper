@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ScheduleEditor } from './schedule-editor'
 import { NotificationPreferencesEditor } from '@/components/settings/notification-preferences'
+import { PhoneEditor } from '@/components/settings/phone-editor'
 import type { Schedule, NotificationPreferences } from '@/lib/types'
 
 export default async function SettingsPage() {
@@ -53,14 +54,13 @@ export default async function SettingsPage() {
               {profile?.role}
             </span>
           </div>
-          <div>
+          <div className="col-span-2">
             <p className="text-xs text-gray-500 mb-1">Email</p>
             <p className="font-medium text-gray-900">{profile?.email}</p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500 mb-1">Phone</p>
-            <p className="font-medium text-gray-900">{profile?.phone ?? '—'}</p>
-          </div>
+        </div>
+        <div className="border-t pt-4">
+          <PhoneEditor currentPhone={profile?.phone ?? null} />
         </div>
       </section>
 

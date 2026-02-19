@@ -10,7 +10,8 @@
       "Bash(npx next build:*)",
       "Bash(dir:*)",
       "Skill(keybindings-help)",
-      "Skill(keybindings-help:*)"
+      "Skill(keybindings-help:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

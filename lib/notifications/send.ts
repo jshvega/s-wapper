@@ -1,5 +1,6 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
 import type { NotificationPreferences, NotificationEventKey } from '@/lib/types'
 
 /**
@@ -9,9 +10,19 @@ import type { NotificationPreferences, NotificationEventKey } from '@/lib/types'
  * for any user (e.g., by cron jobs). This file must never be imported
  * in client-side code.
  *
- * For the demo phase, all sends are console.log only.
- * TODO: Replace with actual Resend (email) and Twilio (SMS) calls in production.
+ * Sends via Resend when RESEND_API_KEY is present; falls back to console.log.
  */
+
+const FROM_ADDRESS = 'S-WAPPER <noreply@notification.s-wapper.com>'
+
+function getResend(): Resend | null {
+  const key = process.env.RESEND_API_KEY
+  if (!key) {
+    console.warn('[Notifications] RESEND_API_KEY not set — email will be logged only, not sent')
+    return null
+  }
+  return new Resend(key)
+}
 
 interface SendNotificationParams {
   userId: string
@@ -62,25 +73,35 @@ export async function sendNotification(params: SendNotificationParams) {
 
   // EMAIL
   if (prefs.email[params.eventKey]) {
-    // TODO: Replace with Resend API call:
-    // const resend = new Resend(process.env.RESEND_API_KEY)
-    // await resend.emails.send({
-    //   from: 'S-WAPPER <noreply@s-wapper.app>',
-    //   to: params.email.to,
-    //   subject: params.email.subject,
-    //   html: params.email.html,
-    // })
-    console.log(
-      `[EMAIL] To: ${params.email.to} | Subject: ${params.email.subject}\n` +
-      `  Body preview: ${params.email.html.replace(/<[^>]*>/g, '').slice(0, 200)}...`
-    )
+    const resend = getResend()
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: FROM_ADDRESS,
+          to: params.email.to,
+          subject: params.email.subject,
+          html: params.email.html,
+        })
+      } catch (err) {
+        console.error('[EMAIL] Resend error:', err)
+        console.log(
+          `[EMAIL FALLBACK] To: ${params.email.to} | Subject: ${params.email.subject}\n` +
+          `  Body preview: ${params.email.html.replace(/<[^>]*>/g, '').slice(0, 200)}...`
+        )
+      }
+    } else {
+      console.log(
+        `[EMAIL] To: ${params.email.to} | Subject: ${params.email.subject}\n` +
+        `  Body preview: ${params.email.html.replace(/<[^>]*>/g, '').slice(0, 200)}...`
+      )
+    }
 
     // Record in notifications table
     await supabase.from('notifications').insert({
       user_id: params.userId,
       type: eventKeyToNotificationType(params.eventKey),
       channel: 'EMAIL',
-      status: 'SENT', // Would be 'PENDING' until Resend confirms in production
+      status: 'SENT',
       content_summary: params.email.subject,
       related_adjustment_id: params.relatedAdjustmentId ?? null,
       sent_at: new Date().toISOString(),

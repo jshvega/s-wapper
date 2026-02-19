@@ -60,7 +60,10 @@ export function NotificationPreferencesEditor({ preferences }: NotificationPrefe
       <div className="grid grid-cols-[1fr_60px_60px] gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider px-1">
         <span>Event</span>
         <span className="text-center">Email</span>
-        <span className="text-center">SMS</span>
+        <span className="text-center flex flex-col items-center gap-0.5">
+          <span>SMS</span>
+          <span className="text-[9px] normal-case text-gray-400 font-normal">Coming Soon</span>
+        </span>
       </div>
 
       {/* Rows */}
@@ -80,6 +83,7 @@ export function NotificationPreferencesEditor({ preferences }: NotificationPrefe
             <ToggleButton
               checked={prefs.sms[key]}
               onClick={() => toggle('sms', key)}
+              disabled
             />
           </div>
         </div>
@@ -95,18 +99,22 @@ export function NotificationPreferencesEditor({ preferences }: NotificationPrefe
   )
 }
 
-function ToggleButton({ checked, onClick }: { checked: boolean; onClick: () => void }) {
+function ToggleButton({ checked, onClick, disabled }: { checked: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-        checked ? 'bg-blue-600' : 'bg-gray-200'
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      title={disabled ? 'Coming soon' : undefined}
+      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+        disabled
+          ? 'cursor-not-allowed bg-gray-100 opacity-50'
+          : `cursor-pointer focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${checked ? 'bg-blue-600' : 'bg-gray-200'}`
       }`}
     >
       <span
         className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-4' : 'translate-x-0'
+          checked && !disabled ? 'translate-x-4' : 'translate-x-0'
         }`}
       />
     </button>

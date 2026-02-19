@@ -97,6 +97,18 @@ export function isSameDay(a: Date, b: Date): boolean {
   )
 }
 
+/** Format a timestamp ISO string as "Feb 18, 2026 at 3:45 PM" */
+export function formatTimestamp(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 /** Is the date in the current calendar month? */
 export function isCurrentMonth(date: Date, year: number, month: number): boolean {
   return date.getFullYear() === year && date.getMonth() === month

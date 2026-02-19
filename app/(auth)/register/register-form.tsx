@@ -5,16 +5,26 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PasswordInput, checkPasswordStrength } from '@/components/ui/password-input'
 import { register } from '@/lib/actions/auth'
 import { useToast } from '@/hooks/use-toast'
 
 export function RegisterForm() {
   const [loading, setLoading] = useState(false)
+  const [password, setPassword] = useState('')
   const router = useRouter()
   const { toast } = useToast()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!checkPasswordStrength(password)) {
+      toast({
+        title: 'Weak password',
+        description: 'Please meet all password requirements before continuing.',
+        variant: 'destructive',
+      })
+      return
+    }
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
@@ -32,7 +42,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} method="post" className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Full Name</Label>
         <Input
@@ -67,14 +77,14 @@ export function RegisterForm() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
-          placeholder="At least 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Create a password"
           required
           autoComplete="new-password"
-          minLength={8}
         />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>

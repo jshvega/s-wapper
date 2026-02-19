@@ -3,13 +3,22 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { cancelPendingAdjustment, cancelConfirmedAdjustment } from '@/lib/actions/listings'
+import { deleteListing, cancelPendingAdjustment, cancelConfirmedAdjustment } from '@/lib/actions/listings'
 import { useToast } from '@/hooks/use-toast'
 import { XCircle } from 'lucide-react'
 
+type CancellableStatus = 'DRAFT' | 'OPEN' | 'PENDING_CONFIRMATION' | 'CONFIRMED'
+
 interface CancelAdjustmentButtonProps {
   adjustmentId: string
-  status: 'PENDING_CONFIRMATION' | 'CONFIRMED'
+  status: CancellableStatus
+}
+
+const MESSAGES: Record<CancellableStatus, { warning: string; success: string }> = {
+  DRAFT:                { warning: 'Remove this draft listing? It will be permanently deleted.', success: 'Draft removed.' },
+  OPEN:                 { warning: 'Withdraw this listing from the marketplace? No one has accepted it yet.', success: 'Listing withdrawn from marketplace.' },
+  PENDING_CONFIRMATION: { warning: 'Cancel this pending adjustment? No Trade ID has been entered yet.', success: 'Pending adjustment has been cancelled.' },
+  CONFIRMED:            { warning: 'Cancel this confirmed adjustment? Any cover ledger entries will be reversed.', success: 'Confirmed adjustment has been cancelled. Any ledger entries have been handled.' },
 }
 
 export function CancelAdjustmentButton({ adjustmentId, status }: CancelAdjustmentButtonProps) {
@@ -18,6 +27,8 @@ export function CancelAdjustmentButton({ adjustmentId, status }: CancelAdjustmen
   const [isPending, startTransition] = useTransition()
   const [confirmStep, setConfirmStep] = useState(false)
 
+  const msg = MESSAGES[status]
+
   const handleCancel = () => {
     if (!confirmStep) {
       setConfirmStep(true)
@@ -25,20 +36,20 @@ export function CancelAdjustmentButton({ adjustmentId, status }: CancelAdjustmen
     }
 
     startTransition(async () => {
-      const action = status === 'PENDING_CONFIRMATION'
-        ? cancelPendingAdjustment
-        : cancelConfirmedAdjustment
+      let result: { error?: string; success?: boolean }
 
-      const result = await action(adjustmentId)
+      if (status === 'DRAFT' || status === 'OPEN') {
+        result = await deleteListing(adjustmentId)
+      } else if (status === 'PENDING_CONFIRMATION') {
+        result = await cancelPendingAdjustment(adjustmentId)
+      } else {
+        result = await cancelConfirmedAdjustment(adjustmentId)
+      }
+
       if (result.error) {
         toast({ title: 'Error', description: result.error, variant: 'destructive' })
       } else {
-        toast({
-          title: 'Cancelled',
-          description: status === 'CONFIRMED'
-            ? 'Confirmed adjustment has been cancelled. Any ledger entries have been handled.'
-            : 'Pending adjustment has been cancelled.',
-        })
+        toast({ title: 'Done', description: msg.success })
         router.push('/listings')
       }
       setConfirmStep(false)
@@ -47,11 +58,7 @@ export function CancelAdjustmentButton({ adjustmentId, status }: CancelAdjustmen
 
   return (
     <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-2">
-      <p className="text-sm font-medium text-red-800">
-        {status === 'CONFIRMED'
-          ? 'Cancel this confirmed adjustment? Any cover ledger entries will be reversed.'
-          : 'Cancel this pending adjustment? No Trade ID has been entered yet.'}
-      </p>
+      <p className="text-sm font-medium text-red-800">{msg.warning}</p>
       <div className="flex gap-2">
         {confirmStep && (
           <Button
@@ -71,7 +78,13 @@ export function CancelAdjustmentButton({ adjustmentId, status }: CancelAdjustmen
           className="gap-1"
         >
           <XCircle className="h-3.5 w-3.5" />
-          {isPending ? 'Cancelling...' : confirmStep ? 'Yes, Cancel' : 'Cancel Adjustment'}
+          {isPending
+            ? 'Processing...'
+            : confirmStep
+              ? 'Yes, confirm'
+              : status === 'DRAFT' ? 'Remove Draft'
+              : status === 'OPEN' ? 'Withdraw Listing'
+              : 'Cancel Adjustment'}
         </Button>
       </div>
     </div>

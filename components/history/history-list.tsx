@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { formatTime } from '@/lib/utils/dates'
+import { formatTime, formatTimestamp } from '@/lib/utils/dates'
 import {
   CheckCircle2,
   XCircle,
@@ -252,6 +252,15 @@ function HistoryRow({ adj, currentUserId }: { adj: Adjustment; currentUserId: st
                   Trade ID: {adj.aspect_trade_id}
                 </p>
               )}
+
+              {/* Key timestamp */}
+              <p className="text-xs text-gray-400 mt-1">
+                {adj.confirmed_at
+                  ? <>Confirmed {formatTimestamp(adj.confirmed_at)}</>
+                  : adj.accepted_at
+                    ? <>Accepted {formatTimestamp(adj.accepted_at)}</>
+                    : <>Listed {formatTimestamp(adj.created_at)}</>}
+              </p>
             </div>
 
             <ExternalLink className="h-4 w-4 text-gray-300 shrink-0 mt-1" />

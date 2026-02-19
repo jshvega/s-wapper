@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { TradeIdInput } from '@/components/listings/trade-id-input'
 import { CancelAdjustmentButton } from '@/components/listings/cancel-adjustment-button'
-import { formatTime } from '@/lib/utils/dates'
+import { formatTime, formatTimestamp } from '@/lib/utils/dates'
 import { ArrowLeft, Calendar, Clock, User, FileText } from 'lucide-react'
 import type { Adjustment } from '@/lib/types'
 
@@ -47,9 +47,9 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
 
   const statusInfo = STATUS_BADGE[adj.status] ?? { variant: 'secondary' as const, label: adj.status }
   const canEnterTradeId = adj.status === 'PENDING_CONFIRMATION' && (isCreator || isAccepter)
-  // PENDING: only creator can cancel. CONFIRMED: either party can cancel.
+  // DRAFT/OPEN: creator only. PENDING: creator only. CONFIRMED: either party.
   const canCancel =
-    (adj.status === 'PENDING_CONFIRMATION' && isCreator) ||
+    (['DRAFT', 'OPEN', 'PENDING_CONFIRMATION'].includes(adj.status) && isCreator) ||
     (adj.status === 'CONFIRMED' && (isCreator || isAccepter))
 
   const dateDisplay = new Date(adj.date + 'T00:00:00').toLocaleDateString('en-US', {
@@ -57,13 +57,6 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
     month: 'long',
     day: 'numeric',
     year: 'numeric',
-  })
-
-  const createdDisplay = new Date(adj.created_at).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
   })
 
   return (
@@ -141,13 +134,6 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
                 <div>
                   <p className="text-xs text-gray-500">Accepted by</p>
                   <p className="text-sm font-medium">{(adj.accepter as any)?.name ?? 'Unknown'}</p>
-                  {adj.accepted_at && (
-                    <p className="text-xs text-gray-400">
-                      {new Date(adj.accepted_at).toLocaleDateString('en-US', {
-                        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-                      })}
-                    </p>
-                  )}
                 </div>
               </div>
             )}
@@ -161,13 +147,6 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
               <p className="text-sm text-green-700 mt-1">
                 Trade ID: <span className="font-mono font-bold">{adj.aspect_trade_id}</span>
               </p>
-              {adj.confirmed_at && (
-                <p className="text-xs text-green-600 mt-1">
-                  Confirmed {new Date(adj.confirmed_at).toLocaleDateString('en-US', {
-                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-                  })}
-                </p>
-              )}
             </CardContent>
           </Card>
         )}
@@ -192,11 +171,52 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         {canCancel && (
           <CancelAdjustmentButton
             adjustmentId={adj.id}
-            status={adj.status as 'PENDING_CONFIRMATION' | 'CONFIRMED'}
+            status={adj.status as 'DRAFT' | 'OPEN' | 'PENDING_CONFIRMATION' | 'CONFIRMED'}
           />
         )}
 
-        <p className="text-xs text-gray-400 text-right">Listed {createdDisplay}</p>
+        {/* Timeline */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-700">Timeline</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs text-gray-600">
+            <div className="flex justify-between gap-2">
+              <span className="text-gray-400">Created</span>
+              <span className="font-medium text-right">{formatTimestamp(adj.created_at)}</span>
+            </div>
+            {adj.accepted_at && (
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400">Accepted</span>
+                <span className="font-medium text-right">{formatTimestamp(adj.accepted_at)}</span>
+              </div>
+            )}
+            {adj.confirmed_at && (
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400">Confirmed</span>
+                <span className="font-medium text-right">{formatTimestamp(adj.confirmed_at)}</span>
+              </div>
+            )}
+            {adj.expires_at && adj.status === 'PENDING_CONFIRMATION' && (
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400">Expires</span>
+                <span className="font-medium text-right text-amber-600">{formatTimestamp(adj.expires_at)}</span>
+              </div>
+            )}
+            {adj.status === 'EXPIRED' && adj.expires_at && (
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400">Expired</span>
+                <span className="font-medium text-right text-red-600">{formatTimestamp(adj.expires_at)}</span>
+              </div>
+            )}
+            {(adj.status === 'CANCELLED' || adj.status === 'REMOVED') && (
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-400">Cancelled</span>
+                <span className="font-medium text-right text-red-600">{formatTimestamp(adj.updated_at)}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
