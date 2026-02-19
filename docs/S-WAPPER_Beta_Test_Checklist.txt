@@ -1,0 +1,255 @@
+S-WAPPER BETA TEST CHECKLIST
+Help us find bugs and improve the app!
+
+================================================================================
+
+YOUR INFO (optional)
+
+Name: _______________________
+Testing Date: _______________________
+
+================================================================================
+
+HOW TO USE THIS CHECKLIST
+
+1. Try each task below
+2. Mark it: ✓ Works | ✗ Broken | ~ Kinda works
+3. Add notes if something was confusing or didn't work right
+4. Send your completed checklist back to the beta group
+
+================================================================================
+
+PART 1: ACCOUNT & SETUP
+
+[ ] Register a new account at s-wapper.com
+    Notes: _______________________
+
+[ ] Receive confirmation email (check spam if needed)
+    Notes: _______________________
+
+[ ] Log in successfully
+    Notes: _______________________
+
+[ ] Set up your schedule (5 workdays, 2 days off)
+    Notes: _______________________
+
+[ ] Log out and log back in
+    Notes: _______________________
+
+================================================================================
+
+PART 2: DASHBOARD & NAVIGATION
+
+[ ] Dashboard loads and shows your weekly schedule
+    Notes: _______________________
+
+[ ] All sidebar links work (Marketplace, Calendar, My Listings, Directory, Ledger, History, Settings)
+    Notes: _______________________
+
+[ ] Mobile: Menu works on phone/tablet
+    Notes: _______________________
+
+================================================================================
+
+PART 3: CREATING LISTINGS
+
+[ ] Create a SWAP REQUEST (save as draft first)
+    Notes: _______________________
+
+[ ] Edit the draft
+    Notes: _______________________
+
+[ ] Publish the draft (should appear in marketplace)
+    Notes: _______________________
+
+[ ] Create a COVER REQUEST and publish it
+    Notes: _______________________
+
+[ ] Create a SWAP OFFER and publish it
+    Notes: _______________________
+
+[ ] Create a COVER OFFER and publish it
+    Notes: _______________________
+
+[ ] Cancel/withdraw a listing before anyone accepts it
+    Notes: _______________________
+
+================================================================================
+
+PART 4: MARKETPLACE
+
+[ ] Browse the marketplace and see other people's listings
+    Notes: _______________________
+
+[ ] Use filters (Swap/Cover, Request/Offer, date range)
+    Notes: _______________________
+
+[ ] Click on a listing to see details
+    Notes: _______________________
+
+[ ] Accept someone else's listing
+    Notes: _______________________
+
+================================================================================
+
+PART 5: CONFIRMATION FLOW
+
+[ ] After accepting, see the pending adjustment on your calendar
+    Notes: _______________________
+
+[ ] See the 24-hour countdown timer
+    Notes: _______________________
+
+[ ] Enter a Trade ID to confirm (use any fake ID like "TEST-123" for testing)
+    Notes: _______________________
+
+[ ] Adjustment shows as CONFIRMED (green) after entering Trade ID
+    Notes: _______________________
+
+================================================================================
+
+PART 6: CALENDAR
+
+[ ] View your calendar with your schedule
+    Notes: _______________________
+
+[ ] Navigate between months
+    Notes: _______________________
+
+[ ] See adjustments displayed on the correct dates
+    Notes: _______________________
+
+[ ] Click on a day to see details
+    Notes: _______________________
+
+[ ] Dates outside the bid period are grayed out / not selectable
+    Notes: _______________________
+
+================================================================================
+
+PART 7: LEDGER
+
+[ ] Complete a COVER (not swap) and confirm it
+    Notes: _______________________
+
+[ ] Check the Ledger page — does it show the debt correctly?
+    Notes: _______________________
+
+[ ] Mark a debt as settled (try Cash, Cover Returned, or Forgiven)
+    Notes: _______________________
+
+[ ] Dashboard shows correct ledger summary
+    Notes: _______________________
+
+================================================================================
+
+PART 8: DIRECTORY
+
+[ ] View the Directory and see other TPs
+    Notes: _______________________
+
+[ ] Search for someone by name
+    Notes: _______________________
+
+[ ] See their schedule info
+    Notes: _______________________
+
+================================================================================
+
+PART 9: HISTORY
+
+[ ] View your History page
+    Notes: _______________________
+
+[ ] See past adjustments with correct statuses
+    Notes: _______________________
+
+[ ] Filter by status or type
+    Notes: _______________________
+
+================================================================================
+
+PART 10: SETTINGS
+
+[ ] Update your phone number
+    Notes: _______________________
+
+[ ] Change notification preferences
+    Notes: _______________________
+
+[ ] Add a legacy/past adjustment
+    Notes: _______________________
+
+================================================================================
+
+PART 11: CANCELLATION
+
+[ ] Cancel a PENDING adjustment (before Trade ID entered)
+    Notes: _______________________
+
+[ ] Cancel a CONFIRMED adjustment
+    Notes: _______________________
+
+[ ] If it was a cover, check that the ledger was reversed
+    Notes: _______________________
+
+================================================================================
+
+PART 12: NOTIFICATIONS
+
+[ ] Receive email when your listing is accepted
+    Notes: _______________________
+
+[ ] Receive email when adjustment is confirmed
+    Notes: _______________________
+
+================================================================================
+
+PART 13: MOBILE EXPERIENCE
+
+[ ] Test the app on your phone
+    Notes: _______________________
+
+[ ] All pages are readable (no cut-off text)
+    Notes: _______________________
+
+[ ] Buttons are easy to tap
+    Notes: _______________________
+
+[ ] Add to Home Screen works (optional)
+    Notes: _______________________
+
+================================================================================
+
+OVERALL FEEDBACK
+
+What did you like most?
+_________________________________________________________________
+_________________________________________________________________
+
+What was confusing or frustrating?
+_________________________________________________________________
+_________________________________________________________________
+
+Any features you wish it had?
+_________________________________________________________________
+_________________________________________________________________
+
+Rate your overall experience (1-5 stars): _____
+
+Would you use this regularly? (Yes / No / Maybe)
+_________________________________________________________________
+
+Other comments:
+_________________________________________________________________
+_________________________________________________________________
+_________________________________________________________________
+
+================================================================================
+
+THANK YOU FOR BETA TESTING!
+
+Your feedback helps make S-WAPPER better for everyone.
+Please send this completed checklist to the beta group.
+
+================================================================================
