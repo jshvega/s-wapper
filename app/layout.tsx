@@ -6,8 +6,8 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'S-WAPPER',
-  description: 'Coordinate shift swaps and covers with your AA travel professional team.',
+  title: 'SWAPPER',
+  description: 'A shift-swap marketplace built with Next.js + Supabase. This project has been retired.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
